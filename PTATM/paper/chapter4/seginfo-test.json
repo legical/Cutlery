@@ -1,0 +1,103 @@
+{
+    "command": [
+        "cmd"
+    ],
+    "clock": "clk",
+    "dump": {
+        "foo": {
+            "fullcost": {
+                "time": [
+                    2.0
+                ]
+            },
+            "foo__0": {
+                "normcost": {
+                    "time": [
+                        2.0
+                    ]
+                },
+                "callinfo": []
+            }
+        },
+        "func": {
+            "fullcost": {
+                "time": [
+                    1.0
+                ]
+            },
+            "func__0": {
+                "normcost": {
+                    "time": [
+                        1.0
+                    ]
+                },
+                "callinfo": []
+            }
+        },
+        "recursive": {
+            "fullcost": {
+                "time": [
+                    13.0
+                ]
+            },
+            "recursive__0": {
+                "normcost": {
+                    "time": [
+                        2.0
+                    ]
+                },
+                "callinfo": []
+            },
+            "recursive__1": {
+                "normcost": {
+                    "time": [
+                        5.0
+                    ]
+                },
+                "callinfo": [
+                    [
+                        "foo",
+                        "func",
+                        "recursive"
+                    ]
+                ]
+            }
+        },
+        "main": {
+            "fullcost": {
+                "time": [
+                    16.0
+                ]
+            },
+            "main__0": {
+                "normcost": {
+                    "time": [
+                        1.0
+                    ]
+                },
+                "callinfo": []
+            },
+            "main__1": {
+                "normcost": {
+                    "time": [
+                        3.0
+                    ]
+                },
+                "callinfo": [
+                    [
+                        "foo",
+                        "recursive"
+                    ]
+                ]
+            },
+            "main__2": {
+                "normcost": {
+                    "time": [
+                        2.0
+                    ]
+                },
+                "callinfo": []
+            }
+        }
+    }
+}

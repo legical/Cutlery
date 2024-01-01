@@ -1,0 +1,10 @@
+[
+    {
+        "core": [
+            3
+        ],
+        "dir": "/usr/local/software/spec2017/benchspec/CPU/620.omnetpp_s/run/run_base_refspeed_mytest-m64.0000",
+        "cmd": "./omnetpp_s_base.mytest-m64 -c General -r 0",
+        "llc-wcar": 33
+    }
+]

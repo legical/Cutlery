@@ -1,0 +1,4 @@
+ IndirectCall-fo 932479 [004] 4273787.184953:          probe_IndirectCall:foo: (55800acce129)
+ IndirectCall-fo 932479 [004] 4273787.184990:         probe_IndirectCall:func: (55800acce146)
+ IndirectCall-fo 932479 [004] 4273787.185004: probe_IndirectCall:func__return: (55800acce146 <- 55800acce144)
+ IndirectCall-fo 932479 [004] 4273787.185010:  probe_IndirectCall:foo__return: (55800acce129 <- 55800acce168)

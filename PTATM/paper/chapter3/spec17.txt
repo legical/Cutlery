@@ -1,0 +1,18 @@
+Result for benchmark: /usr/local/software/spec2017/benchspec/CPU/507.cactuBSSN_r/run/run_base_refrate_mytest-m64.0000/cactusBSSN_r_base.mytest-m64
+timecost for static analysis: 989.3991
+timecost for CFG refactor: 38.8398
+timecost for segmentation: 16.8706
+nr_node , nr_edge = 158310 , 226849
+refactor result False
+refactor failed [<CFG2Segment.CFGBase.Function object at 0x7fda41592cb0>, <CFG2Segment.CFGBase.Function object at 0x7fda4157f070>, <CFG2Segment.CFGBase.Function object at 0x7fda4164e380>, <CFG2Segment.CFGBase.Function object at 0x7fda41785510>, <CFG2Segment.CFGBase.Function object at 0x7fda22530370>, <CFG2Segment.CFGBase.Function object at 0x7fd9f5799a80>, <CFG2Segment.CFGBase.Function object at 0x7fda22a6ed70>]
+segment  result True
+segment  failed {}
+Result for benchmark: /usr/local/software/spec2017/benchspec/CPU/549.fotonik3d_r/run/run_base_refrate_mytest-m64.0000/fotonik3d_r_base.mytest-m64
+timecost for static analysis: 10.8784
+timecost for CFG refactor: 0.6712
+timecost for segmentation: 1.2458
+nr_node , nr_edge = 8734 , 12099
+refactor result True
+refactor failed []
+segment  result True
+segment  failed {}

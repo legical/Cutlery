@@ -1,0 +1,92 @@
+{
+    "target": {
+        "core": [
+            1
+        ],
+        "task": [
+            {
+                "dir": "/usr/local/software/spec2006/benchspec/CPU2006/403.gcc/run/run_base_ref_amd64-m64-gcc42-nn.0000",
+                "binary": "./gcc_base.amd64-m64-gcc42-nn",
+                "probes": [
+                    "main__0=main",
+                    "main=main%return",
+                    "toplev_main__0=toplev_main",
+                    "toplev_main__1=toplev_main+0x72",
+                    "toplev_main__2=toplev_main+0xba",
+                    "toplev_main__3=toplev_main+0x19b",
+                    "toplev_main=toplev_main%return",
+                    "yyparse__0=yyparse",
+                    "yyparse__1=yyparse+0x1b",
+                    "yyparse=yyparse%return",
+                    "wrapup_global_declarations__0=wrapup_global_declarations",
+                    "wrapup_global_declarations__1=wrapup_global_declarations+0x68",
+                    "wrapup_global_declarations=wrapup_global_declarations%return",
+                    "output_func_start_profiler__0=output_func_start_profiler",
+                    "output_func_start_profiler__1=output_func_start_profiler+0x2f",
+                    "output_func_start_profiler__2=output_func_start_profiler+0x39",
+                    "output_func_start_profiler=output_func_start_profiler%return",
+                    "check_global_declarations__0=check_global_declarations",
+                    "check_global_declarations=check_global_declarations%return",
+                    "dw2_output_indirect_constants__0=dw2_output_indirect_constants",
+                    "dw2_output_indirect_constants=dw2_output_indirect_constants%return",
+                    "dump_combine_total_stats__0=dump_combine_total_stats",
+                    "dump_combine_total_stats=dump_combine_total_stats%return"
+                ],
+                "inputs": [
+                    "g23.i -o g23.s"
+                ]
+            }
+        ]
+    },
+    "contender": {
+        "core": [
+            2
+        ],
+        "task": [
+            {
+                "dir": "/usr/local/software/spec2006/benchspec/CPU2006/429.mcf/run/run_base_ref_amd64-m64-gcc42-nn.0000",
+                "cmd": "./mcf_base.amd64-m64-gcc42-nn inp.in"
+            },
+            {
+                "dir": "/usr/local/software/spec2006/benchspec/CPU2006/470.lbm/run/run_base_ref_amd64-m64-gcc42-nn.0000/",
+                "cmd": "./lbm_base.amd64-m64-gcc42-nn 3000 reference.dat 0 0 100_100_130_ldc.of"
+            },
+            {
+                "dir": "/usr/local/software/spec2006/benchspec/CPU2006/462.libquantum/run/run_base_ref_amd64-m64-gcc42-nn.0000/",
+                "cmd": "./libquantum_base.amd64-m64-gcc42-nn 1397 8"
+            },
+            {
+                "dir": "/usr/local/software/spec2006/benchspec/CPU2006/450.soplex/run/run_base_ref_amd64-m64-gcc42-nn.0000/",
+                "cmd": "./soplex_base.amd64-m64-gcc42-nn -m3500 ref.mps"
+            },
+            {
+                "dir": "/usr/local/software/spec2006/benchspec/CPU2006/453.povray/run/run_base_ref_amd64-m64-gcc42-nn.0000/",
+                "cmd": "./povray_base.amd64-m64-gcc42-nn SPEC-benchmark-ref.ini"
+            },
+            {
+                "dir": "/usr/local/software/spec2006/benchspec/CPU2006/456.hmmer/run/run_base_ref_amd64-m64-gcc42-nn.0000/",
+                "cmd": "./hmmer_base.amd64-m64-gcc42-nn nph3.hmm swiss41"
+            },
+            {
+                "dir": "/usr/local/software/spec2017/benchspec/CPU/641.leela_s/run/run_base_refspeed_mytest-m64.0000",
+                "cmd": "./leela_s_base.mytest-m64 ref.sgf"
+            },
+            {
+                "dir": "/usr/local/software/spec2017/benchspec/CPU/625.x264_s/run/run_base_refspeed_mytest-m64.0000",
+                "cmd": "./x264_s_base.mytest-m64 --pass 1 --stats x264_stats.log --bitrate 1000 --frames 1000 -o BuckBunny_New.264 BuckBunny.yuv 1280x720"
+            },
+            {
+                "dir": "/usr/local/software/spec2017/benchspec/CPU/623.xalancbmk_s/run/run_base_refspeed_mytest-m64.0000",
+                "cmd": "./xalancbmk_s_base.mytest-m64 -v t5.xml xalanc.xsl"
+            },
+            {
+                "dir": "/usr/local/software/spec2017/benchspec/CPU/620.omnetpp_s/run/run_base_refspeed_mytest-m64.0000",
+                "cmd": "./omnetpp_s_base.mytest-m64 -c General -r 0"
+            },
+            {
+                "dir": "/usr/local/software/spec2017/benchspec/CPU/600.perlbench_s/run/run_base_refspeed_mytest-m64.0000",
+                "cmd": "./perlbench_s_base.mytest-m64 -I./lib checkspam.pl 2500 5 25 11 150 1 1 1 1"
+            }
+        ]
+    }
+}

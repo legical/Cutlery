@@ -1,0 +1,20 @@
+Result for benchmark: /bin/ls
+timecost for static analysis: 17.2957
+timecost for CFG refactor: 0.7016
+timecost for segmentation: 0.0009
+nr_node , nr_edge = 508 , 764
+main__0=main,main=main%return,_start__0=_start,_start=_start%return,_obstack_begin__0=_obstack_begin,_obstack_begin=_obstack_begin%return,_obstack_begin_1__0=_obstack_begin_1,_obstack_begin_1=_obstack_begin_1%return,_obstack_newchunk__0=_obstack_newchunk,_obstack_newchunk=_obstack_newchunk%return,_obstack_allocated_p__0=_obstack_allocated_p,_obstack_allocated_p=_obstack_allocated_p%return,_obstack_free__0=_obstack_free,_obstack_free=_obstack_free%return,_obstack_memory_used__0=_obstack_memory_used,_obstack_memory_used=_obstack_memory_used%return
+refactor result True
+refactor failed []
+segment  result True
+segment  failed {}
+Result for benchmark: /bin/top
+timecost for static analysis: 22.2488
+timecost for CFG refactor: 0.5656
+timecost for segmentation: 0.0101
+nr_node , nr_edge = 354 , 511
+main__0=main,main__1=main+0x4a,main__2=main+0x1a0,main__3=main+0x214,main=main%return,_start__0=_start,_start=_start%return
+refactor result True
+refactor failed []
+segment  result True
+segment  failed {}

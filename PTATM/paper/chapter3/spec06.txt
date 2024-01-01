@@ -1,0 +1,63 @@
+Result for benchmark: /usr/local/software/spec2006/benchspec/CPU2006/401.bzip2/run/run_base_ref_amd64-m64-gcc42-nn.0000/bzip2_base.amd64-m64-gcc42-nn
+timecost for static analysis: 11.6715
+timecost for CFG refactor: 0.1747
+timecost for segmentation: 0.0241
+nr_node , nr_edge = 2148 , 3285
+refactor result True
+refactor failed []
+segment  result True
+segment  failed {}
+Result for benchmark: /usr/local/software/spec2006/benchspec/CPU2006/403.gcc/run/run_base_ref_amd64-m64-gcc42-nn.0000/gcc_base.amd64-m64-gcc42-nn
+timecost for static analysis: 718.4377
+timecost for CFG refactor: 65.0807
+timecost for segmentation: 2.4027
+nr_node , nr_edge = 150083 , 227555
+refactor result False
+refactor failed [<CFG2Segment.CFGBase.Function object at 0x7fe20d700940>, <CFG2Segment.CFGBase.Function object at 0x7fe20d4f44c0>, <CFG2Segment.CFGBase.Function object at 0x7fe1c92d7850>, <CFG2Segment.CFGBase.Function object at 0x7fe1c8e584f0>, <CFG2Segment.CFGBase.Function object at 0x7fe1c5a7c040>, <CFG2Segment.CFGBase.Function object at 0x7fe1c587c850>, <CFG2Segment.CFGBase.Function object at 0x7fe214e550c0>, <CFG2Segment.CFGBase.Function object at 0x7fe214e57af0>, <CFG2Segment.CFGBase.Function object at 0x7fe1c574c910>, <CFG2Segment.CFGBase.Function object at 0x7fe1c574f850>, <CFG2Segment.CFGBase.Function object at 0x7fe1c5797a60>, <CFG2Segment.CFGBase.Function object at 0x7fe1ff80ece0>]
+segment  result True
+segment  failed {}
+Result for benchmark: /usr/local/software/spec2006/benchspec/CPU2006/429.mcf/run/run_base_ref_amd64-m64-gcc42-nn.0000/mcf_base.amd64-m64-gcc42-nn
+timecost for static analysis: 0.673
+timecost for CFG refactor: 0.0406
+timecost for segmentation: 0.0046
+nr_node , nr_edge = 440 , 667
+refactor result True
+refactor failed []
+segment  result True
+segment  failed {}
+Result for benchmark: /usr/local/software/spec2006/benchspec/CPU2006/454.calculix/run/run_base_ref_amd64-m64-gcc42-nn.0000/calculix_base.amd64-m64-gcc42-nn
+timecost for static analysis: 65.1194
+timecost for CFG refactor: 9.6677
+timecost for segmentation: 1.2455
+nr_node , nr_edge = 50662 , 71956
+refactor result False
+refactor failed [<CFG2Segment.CFGBase.Function object at 0x7fe1c235d720>, <CFG2Segment.CFGBase.Function object at 0x7fe2025efd30>, <CFG2Segment.CFGBase.Function object at 0x7fe2042a5600>, <CFG2Segment.CFGBase.Function object at 0x7fe210a87dc0>]
+segment  result True
+segment  failed {}
+Result for benchmark: /usr/local/software/spec2006/benchspec/CPU2006/462.libquantum/run/run_base_ref_amd64-m64-gcc42-nn.0000/libquantum_base.amd64-m64-gcc42-nn
+timecost for static analysis: 1.6179
+timecost for CFG refactor: 0.1114
+timecost for segmentation: 0.0084
+nr_node , nr_edge = 1261 , 1790
+refactor result True
+refactor failed []
+segment  result True
+segment  failed {}
+Result for benchmark: /usr/local/software/spec2006/benchspec/CPU2006/470.lbm/run/run_base_ref_amd64-m64-gcc42-nn.0000/lbm_base.amd64-m64-gcc42-nn
+timecost for static analysis: 0.5024
+timecost for CFG refactor: 0.0219
+timecost for segmentation: 0.0028
+nr_node , nr_edge = 196 , 271
+refactor result True
+refactor failed []
+segment  result True
+segment  failed {}
+Result for benchmark: /usr/local/software/spec2006/benchspec/CPU2006/482.sphinx3/run/run_base_ref_amd64-m64-gcc42-nn.0000/sphinx_livepretend_base.amd64-m64-gcc42-nn
+timecost for static analysis: 11.8783
+timecost for CFG refactor: 0.5887
+timecost for segmentation: 0.0589
+nr_node , nr_edge = 6434 , 9146
+refactor result True
+refactor failed []
+segment  result True
+segment  failed {}

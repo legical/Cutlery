@@ -1,0 +1,18 @@
+[cmd] [clk]
+1,main__0
+2,main__1
+3,foo__0
+4,foo__return
+5,recursive__0
+6,recursive__1
+7,foo__0
+8,foo__return
+9,recursive__0
+10,recursive__1
+11,func__0
+12,func__return
+13,recursive__return
+14,recursive__return
+15,main__2
+16,main__2
+17,main__return
