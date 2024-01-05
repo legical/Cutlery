@@ -336,10 +336,12 @@ enum {
 #define SIGOFFSET 1024
 static void append_debug(const char* format, ...)
 {
+  if (getenv("DEBUG_MODE")) {
+    char* debug_file = getenv("DEBUG_FILE");
     // 打开文件以追加写入
-    FILE* file = fopen("/home/pzy/project/afl/afl-qemu-test/debug.log", "a");
+    FILE* file = fopen(debug_file, "a");
     if (file == NULL) {
-        printf("无法打开文件\n");
+        fprintf(stderr, "无法打开debug_file: %s\n", debug_file);
         return;
     }
 
@@ -355,6 +357,7 @@ static void append_debug(const char* format, ...)
 
     // 关闭文件
     fclose(file);
+  } else return;    
 }
 
 /* Get unix time in milliseconds */
