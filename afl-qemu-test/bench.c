@@ -62,6 +62,15 @@ int main(int argc, char* argv[]) {
 
     reverseVowels(str, &upperCaseCount, &lowerCaseCount);
 
-
+    if (str[0] == 'H') printf("hello!\n");
+    else if (str[0] == 'w') printf("w!\n");
+    else if (str[0] == 'A') printf("vowelCount: %d\n", vowelCount);
+    else if (str[0] == 'L') printf("letterCount: %d\n", letterCount);
+    else if (str[0] == 'd') printf("digitCount: %d\n", digitCount);
+    else if (str[0] == 'S') printf("spaceCount: %d\n", spaceCount);
+    else if (str[0] == 'C') printf("lowerCaseCount: %d\n", lowerCaseCount);
+    else if (str[0] == 'u') printf("upperCaseCount: %d\n", upperCaseCount);
+    else printf("otherCount: %d\n", otherCount);
+    
     return 0;
 }

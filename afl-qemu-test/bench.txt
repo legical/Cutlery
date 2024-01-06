@@ -1,2 +1,2 @@
 
-main__0=main,main__1=main+0x3a,main=main%return
+main__0=main,main__1=main+0xaa,main__2=main+0xdd,main__3=main+0xf8,main=main%return
