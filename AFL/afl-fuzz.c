@@ -4112,8 +4112,11 @@ static void show_stats(void) {
       // 分段fuzz结束，发送SIGOFFSET信号给自己
       SAYF(bV bSTOP " Stop at address : Segment of main+0x" cRST "%-16s " bSTG bV bSTOP
        "  cycles done : %s%-5s  " bSTG bV "\n",
-       getenv("SEGMENT_OFFSET"), tmp, DI(queue_cycle - 1));
+      getenv("SEGMENT_OFFSET"), tmp, DI(queue_cycle - 1));
+      stop_soon = 2;
       kill(getpid(), SIGOFFSET);
+      fflush(0);
+      return;
     }
 
     /* Default: cautiously OK to stop? */
@@ -7073,12 +7076,12 @@ static char* get_main_addr(const char* filePath) {
     while (fgets(buffer, bufferSize, pipe) != NULL) {
         size_t lineLength = strlen(buffer);
         // 调整结果缓冲区大小
-        if (resultSize + lineLength >= bufferSize) {
+        while (resultSize + lineLength + 1 >= bufferSize) {
             bufferSize *= 2;
             result = (char*)realloc(result, bufferSize * sizeof(char));
         }
         // 将命令输出拼接到结果缓冲区
-        strncpy(result + resultSize, buffer, lineLength);
+        strncat(result, buffer, lineLength);
         resultSize += lineLength;
     }
 
