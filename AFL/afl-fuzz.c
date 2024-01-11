@@ -360,6 +360,62 @@ static void append_debug(const char* format, ...)
   } else return;    
 }
 
+static void write2AFLSegmentFile(uint64_t address) {
+    FILE *file = fopen("/tmp/aflsegment", "w");
+    if (file != NULL) {
+        fprintf(file, "%lu", address);
+        fclose(file);
+    } else {
+        fprintf(stderr, "Failed to open the file for writing.\n");
+    }
+}
+
+/* get target binary main function start address */
+static u64 get_main_addr(const char* filePath) {
+    u64 main_addr = 0;
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    // 构建bash命令字符串
+    const char* commandTemplate = "objdump -S %s | grep '<main>:' | awk '{print $1}'";
+    int commandLength = strlen(commandTemplate) + strlen(filePath) - 1;
+    char* command = (char*)malloc(commandLength * sizeof(char));
+    snprintf(command, commandLength, commandTemplate, filePath);
+
+    // 执行bash命令并获取输出结果
+    FILE* pipe = popen(command, "r");
+    if (pipe == NULL) {
+        fprintf(stderr, "无法执行命令\n");
+        return main_addr;
+    }
+
+    // 读取命令输出到缓冲区
+    while ((read = getline(&line, &len, pipe)) != -1)
+    {
+      
+    }
+
+    sscanf(line, "%llx", &main_addr);
+    append_debug("main_addr str: %s, main_addr: %lu\n", line, main_addr);
+
+    // 关闭管道和释放资源
+    pclose(pipe);
+    free(command);
+    
+    return main_addr;
+}
+
+/* set target binary main function start address to env */
+static void setup_segment_addr(const char* filePath, const u64 segment_offset) {
+  u64 address = 0;
+  if (segment_offset != 0) {
+    u64 main_addr = get_main_addr(filePath);
+    append_debug("main_addr: %lu, segment_offset: %lu\n", main_addr, segment_offset);
+    address = main_addr + segment_offset;
+  }
+
+  write2AFLSegmentFile(address);
+}
 /* Get unix time in milliseconds */
 
 static u64 get_cur_time(void) {
@@ -7052,65 +7108,6 @@ EXP_ST void check_binary(u8* fname) {
 
 }
 
-
-/* get target binary main function start address */
-static char* get_main_addr(const char* filePath) {
-    // 构建bash命令字符串
-    const char* commandTemplate = "objdump -S %s | grep '<main>:' | awk '{print $1}'";
-    int commandLength = strlen(commandTemplate) + strlen(filePath) - 1;
-    char* command = (char*)malloc(commandLength * sizeof(char));
-    snprintf(command, commandLength, commandTemplate, filePath);
-
-    // 执行bash命令并获取输出结果
-    FILE* pipe = popen(command, "r");
-    if (pipe == NULL) {
-        fprintf(stderr, "无法执行命令\n");
-        return NULL;
-    }
-
-    // 读取命令输出到缓冲区
-    char buffer[128];
-    size_t bufferSize = sizeof(buffer);
-    char* result = (char*)malloc(bufferSize * sizeof(char));
-    size_t resultSize = 0;
-    while (fgets(buffer, bufferSize, pipe) != NULL) {
-        size_t lineLength = strlen(buffer);
-        // 调整结果缓冲区大小
-        while (resultSize + lineLength + 1 >= bufferSize) {
-            bufferSize *= 2;
-            result = (char*)realloc(result, bufferSize * sizeof(char));
-        }
-        // 将命令输出拼接到结果缓冲区
-        strncat(result, buffer, lineLength);
-        resultSize += lineLength;
-    }
-
-    // 关闭管道和释放资源
-    pclose(pipe);
-    free(command);
-
-    // 移除结果缓冲区末尾的换行符
-    if (resultSize > 0 && result[resultSize - 1] == '\n') {
-        result[resultSize - 1] = '\0';
-        resultSize--;
-    }
-
-    // 调整结果缓冲区大小为实际长度
-    result = (char*)realloc(result, (resultSize + 1) * sizeof(char));
-    return result;
-}
-
-/* set target binary main function start address to env */
-static void setup_main_addr_env(const char* filePath) {
-  /* 如果已找到main函数首地址，那么直接返回 */
-  if (getenv("TARGET_MAIN_ADDR")) return;
-
-  /* 否则，使用objdump寻找main函数首地址 */
-  char* result = get_main_addr(filePath);
-  setenv("TARGET_MAIN_ADDR", result, 1);
-  free(result);
-}
-
 /* Trim and possibly create a banner for the run. */
 
 static void fix_up_banner(u8* name) {
@@ -7858,6 +7855,7 @@ int main(int argc, char** argv) {
   u8  mem_limit_given = 0;
   u8  exit_1 = !!getenv("AFL_BENCH_JUST_ONE");
   char** use_argv;
+  u64 segment_offset = 0;
 
   struct timeval tv;
   struct timezone tz;
@@ -7868,9 +7866,6 @@ int main(int argc, char** argv) {
 
   gettimeofday(&tv, &tz);
   srandom(tv.tv_sec ^ tv.tv_usec ^ getpid());
-
-  // 默认不分段(offset = 0)
-  setenv("SEGMENT_OFFSET", "0", 1);
 
   while ((opt = getopt(argc, argv, "+i:o:f:m:t:T:dnCB:s:S:M:x:Q")) > 0)
 
@@ -7916,12 +7911,10 @@ int main(int argc, char** argv) {
 
       case 's': /* segment offset */
         if (optarg == NULL || strlen(optarg) == 0) FATAL("Need segment offset value for -s");
-
         if (strcmp(optarg, "return") == 0) {
-          /* main偏移量为0.说明分段结束 */
-            setenv("SEGMENT_OFFSET", "0", 1);
+            break;
         } else {
-            setenv("SEGMENT_OFFSET", optarg, 1);
+            sscanf(optarg, "%llx", &segment_offset);
         }
         break;
 
@@ -8155,8 +8148,8 @@ int main(int argc, char** argv) {
 
   // 检查目标程序，看找不找得到、在不在 /tmp 等。
   check_binary(argv[optind]);
-  /* 获取目标程序的main函数起始地址，并设置到环境变量TARGET_MAIN_ADDR中 */
-  setup_main_addr_env(argv[optind]);
+  /* 获取目标程序的main函数起始地址和分段偏移 */
+  setup_segment_addr(argv[optind], segment_offset);
 
   start_time = get_cur_time();
 

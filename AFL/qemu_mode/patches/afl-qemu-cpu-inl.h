@@ -105,8 +105,7 @@ static unsigned char *afl_area_ptr;
 abi_ulong afl_entry_point, /* ELF entry point (_start) */
           afl_start_code,  /* .text start pointer      */
           afl_end_code,    /* .text end pointer        */
-          afl_main_start = 0,    /* target program main start address */
-          afl_main_offset = 0;    /* target program main offset address for segmentation */
+          afl_main_offset = 0;    /* target program main + offset address for segmentation */
 
 /* Set in the child process in forkserver mode: */
 
@@ -118,7 +117,7 @@ unsigned int afl_forksrv_pid;
 static unsigned int afl_inst_rms = MAP_SIZE;
 
 /* Function declarations. */
-
+static void afl_seg_offset(void);
 static void afl_setup(void);
 static void afl_forkserver(CPUState*);
 static inline void afl_maybe_log(abi_ulong, CPUState*);
@@ -149,9 +148,7 @@ static inline TranslationBlock *tb_find(CPUState*, TranslationBlock*, int);
 static void afl_setup(void) {
   // 获取提前放入环境变量的共享内存id
   char *id_str = getenv(SHM_ENV_VAR),
-       *inst_r = getenv("AFL_INST_RATIO"),
-       *main_start_v = getenv("TARGET_MAIN_ADDR"),
-       *main_offset_v = getenv("SEGMENT_OFFSET");
+       *inst_r = getenv("AFL_INST_RATIO");
 
   int shm_id;
   /* 决定插桩的“密度”，后面会提到 */
@@ -190,17 +187,7 @@ static void afl_setup(void) {
 
   }
 
-  /* main函数起始地址只需要获取一次 */
-  if (main_start_v && afl_main_start == 0) {
-    /* 获取目标程序的main函数的起始地址 */
-    afl_main_start = strtoul(main_start_v, NULL, 16);
-  }
-
-  /* main函数偏移地址每次都需要获取: 0-分段结束; else-分段 */
-  if (main_offset_v) {
-    /* 获取目标程序的main函数的偏移地址 */
-    afl_main_offset = strtoul(main_offset_v, NULL, 16);
-  }
+  afl_seg_offset();
 
   /* pthread_atfork() seems somewhat broken in util/rcu.c, and I'm
      not entirely sure what is the cause. This disables that
@@ -291,6 +278,7 @@ static void afl_forkserver(CPUState *cpu) {
 static inline void afl_maybe_log(abi_ulong cur_loc, CPUState *cpu) {
   // 注意这是一个静态变量
   static __thread abi_ulong prev_loc;
+  abi_ulong cur_local = cur_loc;
 
   /* Optimize for cur_loc > afl_end_code, which is the most likely case on
      Linux systems. */
@@ -305,8 +293,7 @@ static inline void afl_maybe_log(abi_ulong cur_loc, CPUState *cpu) {
 
   /* Looks like QEMU always maps to fixed locations, so ASAN is not a
      concern. Phew. But instruction addresses may be aligned. Let's mangle
-     the value to get something quasi-uniform. */
-
+     the value to get something quasi-uniform. */ 
   cur_loc  = (cur_loc >> 4) ^ (cur_loc << 8);
   cur_loc &= MAP_SIZE - 1;
 
@@ -317,17 +304,16 @@ static inline void afl_maybe_log(abi_ulong cur_loc, CPUState *cpu) {
 
   afl_area_ptr[cur_loc ^ prev_loc]++;
   prev_loc = cur_loc >> 1;
+  append_debug("Child [%d] reach2 cur_local:%u, cur:%u, main+offset:%u, reach? %d\n", getpid(), cur_local, cur_loc, afl_main_offset, ((int)afl_main_offset == (int)cur_local) ? 1 : 0);
 
-/* 如果分段偏移量不为0，证明设置了偏移，检测cur_loc是否运行到main start + offset */
-  if (afl_main_offset && afl_main_start) {
-    if (cur_loc == (afl_main_start + afl_main_offset)) {
-      CPUClass *cc = CPU_GET_CLASS(cpu);
-      cc->cpu_exec_exit(cpu);
-      rcu_read_unlock();
-      /* 到达分段地址，子进程直接结束 */
-      append_debug("Child [%d] reach seg. cur:%u, main:%u, offset:%u\n", getpid(), cur_loc, afl_main_start, afl_main_offset);
-      exit(0);
-    }
+  /* 如果分段偏移量不为0，证明设置了偏移，检测cur_loc是否运行到main start + offset */  
+  if (afl_main_offset && (int)afl_main_offset == (int)cur_local) {
+    append_debug("Child [%d] reach seg. cur_local:%u, cur:%u, main+offset:%u\n", getpid(), cur_local, cur_loc, afl_main_offset);
+    CPUClass *cc = CPU_GET_CLASS(cpu);
+    cc->cpu_exec_exit(cpu);
+    rcu_read_unlock();
+    /* 到达分段地址，子进程直接结束 */
+    exit(0);    
   }
 
 }
@@ -384,15 +370,17 @@ static void afl_wait_tsl(CPUState *cpu, int fd) {
 
 }
 
-// static void afl_get_addr(abi_ulong cur_addr) {
-//   FILE *file = fopen("/home/pzy/project/afl/afl-qemu-test/addrrecord.txt", "a+");
-//   if (file == NULL) {
-//       fprintf(stderr, "Failed to open file.\n");
-//       return;
-//   }
-
-//   fprintf(file, "cur_loc: %x, entry_point: %x, ", cur_addr, afl_entry_point);
-//   fprintf(file, "%x\n", cur_addr - afl_entry_point);
-
-//   fclose(file);
-// }
+static void afl_seg_offset() {
+  // 打开文件以读取数据
+  FILE* file = fopen("/tmp/aflsegment", "rb");
+  if (file == NULL) {
+      perror("Error opening file");
+      return;
+  }  
+  // 从文件中读取数据到变量中
+  fscanf(file, "%lu", &afl_main_offset);
+  // 关闭文件
+  fclose(file);  
+  // 删除文件
+  remove("/tmp/aflsegment");
+}

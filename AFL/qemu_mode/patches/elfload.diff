@@ -4,7 +4,7 @@
  
  #define ELF_OSABI   ELFOSABI_SYSV
  
-+extern abi_ulong afl_entry_point, afl_start_code, afl_end_code;
++extern abi_ulong afl_entry_point, afl_start_code, afl_end_code, afl_main_offset;
 +
  /* from personality.h */
  
