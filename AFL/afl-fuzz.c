@@ -4091,14 +4091,7 @@ static void show_stats(void) {
 
   /* If we're not on TTY, bail out. */
 
-  if (not_on_tty) {
-    u64 min_wo_finds = (cur_ms - last_path_time) / 1000 / 60;
-    if (cycles_wo_finds > 100 && !pending_not_fuzzed && min_wo_finds > 10) {
-      stop_soon = 2;
-      kill(getpid(), SIGOFFSET);
-    }
-    return;
-  }
+  if (not_on_tty) return;
 
   /* Compute some mildly useful bitmap stats. */
 
@@ -4170,16 +4163,13 @@ static void show_stats(void) {
     if (cycles_wo_finds < 25 || min_wo_finds < 30) strcpy(tmp, cYEL); else
 
     /* No finds for a long time and no test cases to try. */
-    if (cycles_wo_finds > 100 && !pending_not_fuzzed && min_wo_finds > 31) {
+    if (cycles_wo_finds > 100 && !pending_not_fuzzed && min_wo_finds > 120) {
       strcpy(tmp, cLGN);
       // 分段fuzz结束，发送SIGOFFSET信号给自己
       SAYF(bV bSTOP " Stop at address : Segment of main+0x" cRST "%-16s " bSTG bV bSTOP
        "  cycles done : %s%-5s  " bSTG bV "\n",
       getenv("SEGMENT_OFFSET"), tmp, DI(queue_cycle - 1));
       stop_soon = 2;
-      kill(getpid(), SIGOFFSET);
-      fflush(0);
-      return;
     }
 
     /* Default: cautiously OK to stop? */
@@ -7922,6 +7912,8 @@ int main(int argc, char** argv) {
             break;
         } else {
             sscanf(optarg, "%llx", &segment_offset);
+            setenv("SEGMENT_OFFSET", optarg, 1);
+            setenv("AFL_EXIT_WHEN_DONE", "1", 1);
         }
         break;
 
