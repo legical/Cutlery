@@ -30,7 +30,10 @@ class FuzzTool:
     # run AFL command with wait mode
     def run_command(self, afl_cmds:str):
         # 启动bash AFL fuzz
-        process = subprocess.Popen(['bash', '-c', afl_cmds], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        afl_cmds += ' > /dev/null 2>&1'
+        process = subprocess.Popen(afl_cmds, shell=True,
+                                   stdout=subprocess.PIPE, 
+                                   stderr=subprocess.STDOUT)
 
         # 等待命令结束
         process.wait()
