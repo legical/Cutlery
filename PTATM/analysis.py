@@ -220,7 +220,7 @@ class SegmentModule:
         probes = SegmentModule.genprobes(args.binary, args.function, args.max_seg, args.verbose)
         if len(probes) != 0:
             if args.verbose:
-                info('Save result into %s' % args.output)
+                info(f'Save result into ➜ {args.output}')
             with open(args.output, 'a') as output:
                 output.write('\n' + reduce(lambda x, y: x + ',' + y, probes))
             if args.verbose:
@@ -228,7 +228,7 @@ class SegmentModule:
         elif args.verbose:
             info('Nothing to segment, check func arguments.')
 
-class FuzzModule:    
+class FuzzModule:
     @staticmethod
     def initWorkspace(in_path, out_path, seg_path: str, binary:str, verbose: bool, function = "main"):
         from Fuzz import FuzzEnv
@@ -264,7 +264,7 @@ class FuzzModule:
             pre_afl_cmd = fuzz_tool.genPreAFLCmd(fuzz_env.in_path, fuzz_env.out_path, offset)
             afl_cmd = fuzz_tool.genAFLCmd(pre_afl_cmd, suf_afl_cmd, args.afl_extra_cmd)
             if args.verbose:
-                info('Execute AFL command as [%s].' % afl_cmd)
+                info(f'Execute AFL command ➜ {afl_cmd}')
             
             # user_input = input("请输入一个值（输入'n'退出程序）：")
             # if user_input == 'n':
@@ -273,10 +273,10 @@ class FuzzModule:
             
             exit_code = fuzz_tool.run_command(afl_cmd)
             if args.verbose:
-                info('Execute AFL command return [%s]. Merge seeds...' % exit_code)
+                info(f'AFL fuzzing return [{exit_code}]. Merge seeds...')
             fuzz_env.mergeSeeds(offset)
             if args.verbose:
-                info('Fuzzing [%s]%[%s] done.' % args.function, offset)
+                info(f'Fuzzing {args.function}+{offset} done.')
 
         if args.verbose:
             info('Segmented AFL all done.')

@@ -231,10 +231,15 @@ class FuzzEnv:
             # 获取out_path/queue/下的所有文件，但不包括子文件夹及其内部的文件
             files = [f for f in os.listdir(queue_path) if os.path.isfile(os.path.join(queue_path, f))]
 
+            self.__checkInPathExist(True)
+
             # 复制生成的测试用例到输入文件夹
             for file in files:
                 src = queue_path + "/" + file
-                dst = self.in_path + "/" + prefix + file
+                newname = file
+                if len(newname) > 4:
+                    newname = newname[-4:]
+                dst = self.in_path + "/" + prefix + newname
                 shutil.copyfile(src, dst)
 
             # 保存本次输出seeds
