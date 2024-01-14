@@ -4166,7 +4166,7 @@ static void show_stats(void) {
     if (cycles_wo_finds > 100 && !pending_not_fuzzed && min_wo_finds > 120) {
       strcpy(tmp, cLGN);
       // 分段fuzz结束，发送SIGOFFSET信号给自己
-      SAYF(bV bSTOP " Stop at address : Segment of main+0x" cRST "%-16s " bSTG bV bSTOP
+      SAYF(bV bSTOP " Stop at address : Segment of main+" cRST "%-16s " bSTG bV bSTOP
        "  cycles done : %s%-5s  " bSTG bV "\n",
       getenv("SEGMENT_OFFSET"), tmp, DI(queue_cycle - 1));
       stop_soon = 2;
@@ -7908,13 +7908,12 @@ int main(int argc, char** argv) {
 
       case 's': /* segment offset */
         if (optarg == NULL || strlen(optarg) == 0) FATAL("Need segment offset value for -s");
-        if (strcmp(optarg, "return") == 0) {
-            break;
-        } else {
+        if (strcmp(optarg, "return") != 0) {
             sscanf(optarg, "%llx", &segment_offset);
-            setenv("SEGMENT_OFFSET", optarg, 1);
-            setenv("AFL_EXIT_WHEN_DONE", "1", 1);
         }
+        setenv("SEGMENT_OFFSET", optarg, 1);
+        /* 设置Segment offset, AFL 自动停止 */
+        setenv("AFL_EXIT_WHEN_DONE", "1", 1);
         break;
 
       case 'S': 
