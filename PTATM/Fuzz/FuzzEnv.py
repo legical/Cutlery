@@ -234,12 +234,12 @@ class FuzzEnv:
             self.__checkInPathExist(True)
 
             # 复制生成的测试用例到输入文件夹
-            for file in files:
-                src = queue_path + "/" + file
-                newname = file
-                if len(newname) > 4:
-                    newname = newname[-4:]
-                dst = self.in_path + "/" + prefix + newname
+            for i, file_name in enumerate(files, 1):
+                # 构造新的文件名，例如1.in、2.in、3.in等
+                new_file_name = f"{i}.in"
+
+                src = queue_path + "/" + file_name
+                dst = self.in_path + "/" + prefix + new_file_name
                 shutil.copyfile(src, dst)
 
             # 保存本次输出seeds

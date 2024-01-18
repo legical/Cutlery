@@ -220,7 +220,7 @@ class SegmentModule:
         probes = SegmentModule.genprobes(args.binary, args.function, args.max_seg, args.verbose)
         if len(probes) != 0:
             if args.verbose:
-                info(f'Save result into ➜ {args.output}')
+                info(f'Save result into ➜  {args.output}')
             with open(args.output, 'a') as output:
                 output.write('\n' + reduce(lambda x, y: x + ',' + y, probes))
             if args.verbose:
@@ -260,11 +260,15 @@ class FuzzModule:
 
         # generate & run AFL cmd.
         suf_afl_cmd = fuzz_tool.genSufAFLCmd(args.binary, args.readfile, args.binary_args)
+
+        import time
+        start_time = time.time()  # 记录开始时间
+
         for offset in fuzz_env.seginfo:
             pre_afl_cmd = fuzz_tool.genPreAFLCmd(fuzz_env.in_path, fuzz_env.out_path, offset)
             afl_cmd = fuzz_tool.genAFLCmd(pre_afl_cmd, suf_afl_cmd, args.afl_extra_cmd)
             if args.verbose:
-                info(f'Execute AFL command ➜ {afl_cmd}')
+                info(f'Execute AFL command ➜  {afl_cmd}')
             
             # user_input = input("请输入一个值（输入'n'退出程序）：")
             # if user_input == 'n':
@@ -277,9 +281,11 @@ class FuzzModule:
             fuzz_env.mergeSeeds(offset)
             if args.verbose:
                 info(f'Fuzzing {args.function}+{offset} done.')
+        
+        elapsed_time = time.time() - start_time  # 计算总体耗时       
 
         if args.verbose:
-            info('Segmented AFL all done.')
+            info(f'Segmented AFL all done. Total cost: {fuzz_tool.fuzztime(elapsed_time)}')
 
 class ControlModule:
     # MACRO for gencarsim.

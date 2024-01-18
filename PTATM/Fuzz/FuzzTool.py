@@ -47,4 +47,20 @@ class FuzzTool:
     def fuzzone(self, afl_cmds:str):
         self.run_command(afl_cmds)
 
+    # calculate the time of fuzzing
+    def fuzztime(self, elapsed_time:float) -> str:
+        # 将总体耗时转换为日、小时、分钟和秒
+        days, remainder = divmod(elapsed_time, 86400)
+        hours, remainder = divmod(remainder, 3600)
+        minutes, seconds = divmod(remainder, 60)
+
+        # 格式化输出
+        if days > 0:
+            return f"{days} days {hours} hours {minutes} minutes {seconds} seconds"
+        elif hours > 0:
+            return f"{hours} hours {minutes} minutes {seconds} seconds"
+        elif minutes > 0:
+            return f"{minutes} minutes {seconds} seconds"
+        else:
+            return f"{seconds} seconds"
 
