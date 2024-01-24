@@ -5,6 +5,12 @@ from angrutils import *
 def generate_cfg(target_path, output_path):
     print("Gen cfg for [%s] at main function with output [%s]." % (target_path, output_path))
     project = angr.Project(target_path, load_options={'auto_load_libs': False})
+    #从符号表获取main函数对象
+    main = project.loader.main_object.get_symbol("main")
+    #生成起点从main函数开始的cfg
+    # cfg = project.analyses.CFGEmulated(starts=[main.rebased_addr])
+    # 调用angrutils的方法来画图
+    # plot_cfg(cfg,"cfg",format='png', asminst=True,remove_imports=True)
     cfg = project.analyses.CFGFast()
     cfg.normalize()
     if output_path.endswith('.png') or output_path.endswith('.jpg'):

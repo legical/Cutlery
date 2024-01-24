@@ -12,7 +12,7 @@ class FuzzEnv:
     #   get_node                Get CFG node by addr.
 
     # init
-    def __init__(self, in_path:str, out_path:str, seg_path:str, binary:str):
+    def __init__(self, in_path: str, out_path: str, seg_path: str, binary: str):
         self.in_path = in_path
         self.out_path = out_path
         self.seg_path = seg_path
@@ -31,30 +31,30 @@ class FuzzEnv:
                     os.rmdir(os.path.join(root, name))
 
     # Check if the folder exists, if not, create the directory
-    def __checkPathExist(self, path:str, clear = False):
+    def __checkPathExist(self, path: str, clear=False):
         if not os.path.exists(path):
             os.makedirs(path)
         elif clear:
             self.__cleanPath(path)
 
     # Check if the file exists, if not, raise a FileNotFoundError
-    def __checkFileExist(self, path:str):
+    def __checkFileExist(self, path: str):
         if not os.path.exists(path):
             raise FileNotFoundError(f"File {path} does not exist.")
 
     # Check if the input folder exists, if not, create the directory
-    def __checkInPathExist(self, clear = False):
+    def __checkInPathExist(self, clear=False):
         self.__checkPathExist(self.in_path, clear)
-    
+
     # Check if the output folder exists, if not, create the directory
-    def __checkOutPathExist(self, clear = False):
+    def __checkOutPathExist(self, clear=False):
         self.__checkPathExist(self.out_path, clear)
 
     # Check if the output folder exists, if not, create the directory
     # if it exists, check if the folder is empty, if it is not empty, report an error
     def __checkOutPathEmpty(self):
         self.__checkOutPathExist()
-    
+
         if len(os.listdir(self.out_path)) != 0:
             # ask user whether to delete the files in the folder
             # if user choose to delete, delete all files and folders in the folder
@@ -62,7 +62,7 @@ class FuzzEnv:
                 self.__cleanPath(self.out_path)
             else:
                 raise Exception("Exit! Output folder[%s] is not empty." % self.out_path)
-            
+
     # Check Workspace (in/out folder) exist?
     def checkWorkspaceExist(self):
         self.__checkInPathExist()
@@ -141,7 +141,7 @@ class FuzzEnv:
                       "    external utility. This will cause issues: there will be an extended delay\n"
                       "    between stumbling upon a crash and having this information relayed to the\n"
                       "    fuzzer via the standard waitpid() API.\n\n"
-                      "    To avoid having crashes misinterpreted as timeouts, please log in as root\n" 
+                      "    To avoid having crashes misinterpreted as timeouts, please log in as root\n"
                       "    and temporarily modify /proc/sys/kernel/core_pattern, like so:\n\n"
                       "    export AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1\n\n"
                       "    With this environment variable, AFL will not display warning messages and may miss crashes. You can also:\n"
@@ -152,7 +152,7 @@ class FuzzEnv:
                     raise Exception("Pipe at the beginning of 'core_pattern'")
         else:
             print("This check is specific to Linux and is not supported on your system.")
-    
+
     # Init: Workspace (in/out folder) exist, out empty?
     def initWorkspace(self):
         self.checkWorkspaceExist()
@@ -165,11 +165,11 @@ class FuzzEnv:
         # Check AFL run envrionment
         self.checkCoreDump()
         self.checkCPUFreqScaling()
-                
+
     # get segment info from file, only save segment address offset with main%
     # args: prefix, default is "main", function name
     # return a list, each element is a segment address offset
-    def getSegInfo(self, prefix = "main") -> list:
+    def getSegInfo(self, prefix="main") -> list:
         # 检查文件是否存在
         try:
             with open(self.seg_path, 'r') as file:
@@ -205,9 +205,10 @@ class FuzzEnv:
     # time is the current time
     def saveOldOutSeeds(self):
         # 获取当前时间
-        import time, subprocess
+        import time
+        import subprocess
         time = time.strftime("%Y%m%d%H%M%S", time.localtime())
-        
+
         # 创建old文件夹
         self.old_out_path = self.out_path + "_old"
         self.__checkPathExist(self.old_out_path)
@@ -225,7 +226,7 @@ class FuzzEnv:
         self.__checkOutPathExist(True)
 
     # copy only files, not subfolders of out_path/queue/* to in_path, rename file with prefix(segment address offset)
-    def mergeSeeds(self, prefix = ""):
+    def mergeSeeds(self, prefix=""):
         queue_path = self.out_path + "/queue"
         if os.path.exists(queue_path):
             # 获取out_path/queue/下的所有文件，但不包括子文件夹及其内部的文件
@@ -244,6 +245,3 @@ class FuzzEnv:
 
             # 保存本次输出seeds
             self.saveOldOutSeeds()
-
-    
-    

@@ -228,9 +228,10 @@ class SegmentModule:
         elif args.verbose:
             info('Nothing to segment, check func arguments.')
 
+
 class FuzzModule:
     @staticmethod
-    def initWorkspace(in_path, out_path, seg_path: str, binary:str, verbose: bool, function = "main"):
+    def initWorkspace(in_path, out_path, seg_path: str, binary: str, verbose: bool, function="main"):
         from Fuzz import FuzzEnv
         # Check input and output directories for legality.
         if verbose:
