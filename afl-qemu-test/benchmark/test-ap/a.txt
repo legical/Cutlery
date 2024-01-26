@@ -1,0 +1,2 @@
+
+main__0=main,main__1=main+0x46,main__2=main+0x50,main=main%return
