@@ -74,6 +74,16 @@ def generate_cfg(target_path, output_path, use_emulated: bool = False, all_cfg: 
     else:
         cfg = project.analyses.CFGFast()
 
+    # 获取函数对象
+    function = project.kb.functions.function(name="main")
+
+    # 获取函数对象的最后一个基本块
+    last_block = function.endpoints[0]
+    print(len(function.endpoints))
+
+    # 打印最后一个基本块的地址
+    print(f"最后一个基本块的地址：{hex(last_block.addr)} = main + {hex(last_block.addr - function.addr)}")
+
     cfg = processGraph(cfg, all_cfg, remove_fakeret)
 
     if output_path.endswith('.png') or output_path.endswith('.jpg'):

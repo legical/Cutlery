@@ -29,7 +29,10 @@ def get_function_block(func: angr.knowledge_plugins.functions.function.Function,
 
 def get_function_endaddr(func: angr.knowledge_plugins.functions.function.Function):
     # 获取函数的终止基本块地址
-    return func.ret_sites[0].addr
+    if len(func.ret_sites) == 1:
+        print(f"{type(func.ret_sites[0])} \n {func.ret_sites[0].addr}")
+        return func.ret_sites[0].addr
+    return None
 
 def show_graph_nodes(graph):
     for node in graph.nodes:
@@ -57,14 +60,16 @@ def get_articulation_points(target_path):
     # show_graph_nodes(cfg.graph)
 
     # 获取 main 函数的起始地址和终止地址
-    main_function = project.kb.functions.function(name="main")
-    caseb_function = project.kb.functions.function(name="caseb")
+    main_function = cfg.functions.function(name="main")
+    caseb_function = cfg.functions.function(name="caseb")
     main_start_address = main_function.addr + 0x46
     main_end_address = main_function.addr + 0x50
 
     # 获取 main 函数的 CFGNode
     start_node = cfg.get_any_node(main_start_address)
     end_node = cfg.get_any_node(main_end_address)
+
+    print(f"{main_function.addr} {cfg.get_any_node(main_start_address).function_address}")
 
     # 检测并移除属性值为 'Ijk_FakeRet' 的边
     edges_to_remove = [(u, v) for u, v, data in cfg.graph.edges(data=True) if data.get('jumpkind') == 'Ijk_FakeRet']
@@ -80,7 +85,14 @@ def get_articulation_points(target_path):
         print(f"find {len(ap)} cut nodes.")
         for node in ap:
             print(node)
+            print(f"{node[0]} {node[0].addr} {node[0].name} {node[0].function_address}")
             print(cfg.graph.get_edge_data(node[0], node[1]))
+
+            for innernode in node:
+                if innernode.function_address == main_function.addr:
+                    print(f"{innernode} belong to main function.")
+                else:
+                    print(f"{innernode} not belong to main function, can be used to find cut function.")
 
     # 获取main函数的终止地址
     main_terminating_address = get_function_endaddr(main_function)
@@ -192,6 +204,14 @@ def showFuncNodeAddr(binary_path, func_name: str):
     start_node = cfg.get_any_node(func.addr)
     DFSShowFuncNode(cfg, start_node)
 
+def testCut(binary:str):
+    import sys
+    sys.path.append("../PTATM/")
+    from CFGCut import CutBuilder
+    cut_builder = CutBuilder.CutFuncGetter(4, binary=binary)
+    seg_func_names = cut_builder.findCutFunctionFromMain()
+    print(seg_func_names)
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -205,4 +225,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # showFuncNodeAddr(args.target_path, args.function)
-    get_articulation_points(args.target_path)
+    testCut(args.target_path)
