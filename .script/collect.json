@@ -1,0 +1,24 @@
+{
+    "target": {
+        "core": [1],
+        "task": [
+            {
+                "dir": ".",
+                "binary": "/home/cxg/workspace/PTATM-AFL/afl-qemu-test/benchmark/test-ap/a",
+                "probes": [
+                    "main__0=main", "main__1=main+0x46", "main__2=main+0x50", 
+                    "caseb__0=caseb", "caseb__1=caseb+0x5a", "caseb=caseb%return",
+                    "func3__0=func3", 
+                    "main=main%return", "caseb=caseb%return", "func3=func3%return"
+                ],
+                "inputs": [
+                    "AaJJsa5",
+                    "AiJJsa5",
+                    "�aJJsa5"
+                ]
+            }
+        ]
+    },
+    "contender": {
+    }
+}

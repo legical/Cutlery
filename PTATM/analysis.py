@@ -264,19 +264,17 @@ class CutModule:
     @staticmethod
     def service(args):
         from CFGCut import CutBuilder
-        cut_builder = CutBuilder.CutFuncGetter(max_seg=args.max_seg, binary=args.binary)
+        cut_builder = CutBuilder.CutFuncGetter(max_seg=args.max_seg, binary=args.binary, output_file=args.output)
         if args.verbose:
-            info(f'Start finding cut function list of {args.binary}')
+            info(f'Start finding cut-function list for binary[{args.binary}].')
         seg_func_names = cut_builder.findCutFunctionFromMain()
         if len(seg_func_names) != 0:
             if args.verbose:
-                info(f'Save result {seg_func_names} into ➜  {args.output}')
-            with open(args.output, 'a') as output:
-                output.write('\n' + reduce(lambda x, y: x + ',' + y, seg_func_names))
-            if args.verbose:
+                info(f'Find cut-node function list: {seg_func_names}.')
+                info(f'Save cut-function segment result into ➜  {args.output}.')
                 info('Done.')
         elif args.verbose:
-            warn('No cut-point function found, check code structure.')
+            warn('No cut-function found, check code structure.')
 
 
 class FuzzModule:
@@ -321,7 +319,7 @@ class FuzzModule:
             afl_cmd = fuzz_tool.genAFLCmd(pre_afl_cmd, suf_afl_cmd, args.afl_extra_cmd)
             if args.verbose:
                 info(f'Execute AFL command ➜  {afl_cmd}')
-                
+
             exit_code = fuzz_tool.run_command(afl_cmd)
             if args.verbose:
                 info(f'AFL fuzzing return [{exit_code}]. Merge seeds...')
@@ -485,6 +483,7 @@ class CollectModule:
     PROBES = 'probes'
     INPUTS = 'inputs'
     CMD = 'cmd'
+    RUN_CONTENDER = False
 
     @staticmethod
     def gentrace(binary: str, command: str, uprobes: list, clock: str):
@@ -548,16 +547,18 @@ class CollectModule:
 
         # Check contender.
         contender = conf[CollectModule.CONTENDER]
-        for core in contender[CollectModule.CORE]:
-            if not isinstance(core, int) or core >= multiprocessing.cpu_count() or core < 0:
-                raise Exception('Invalid core[%d].' % core)
-        for task in contender[CollectModule.TASK]:
-            # Check dir.
-            if not isinstance(task[CollectModule.DIR], str):
-                raise Exception('Invalid dir[%s].' % task[CollectModule.DIR])
-            # Check cmd.
-            if not isinstance(task[CollectModule.CMD], str):
-                raise Exception('Invalid cmd[%s].' % task[CollectModule.CMD])
+        if contender is not None and len(contender) > 0:
+            CollectModule.RUN_CONTENDER = True
+            for core in contender[CollectModule.CORE]:
+                if not isinstance(core, int) or core >= multiprocessing.cpu_count() or core < 0:
+                    raise Exception('Invalid core[%d].' % core)
+            for task in contender[CollectModule.TASK]:
+                # Check dir.
+                if not isinstance(task[CollectModule.DIR], str):
+                    raise Exception('Invalid dir[%s].' % task[CollectModule.DIR])
+                # Check cmd.
+                if not isinstance(task[CollectModule.CMD], str):
+                    raise Exception('Invalid cmd[%s].' % task[CollectModule.CMD])
 
     @staticmethod
     def service(args):
@@ -568,14 +569,15 @@ class CollectModule:
         CollectModule.checkconf(taskjson)
         target, contender = taskjson[CollectModule.TARGET], taskjson[CollectModule.CONTENDER]
 
-        # Start contender at each core.
-        contender_procset = set()
-        for core in contender[CollectModule.CORE]:
-            if args.verbose:
-                info('Start contender at core %d.' % core)
-            contender_procset.add(multiprocessing.Process(target=CollectModule.compete, args=(contender, core)))
-        for proc in contender_procset:
-            proc.start()
+        if CollectModule.RUN_CONTENDER:
+            # Start contender at each core.
+            contender_procset = set()
+            for core in contender[CollectModule.CORE]:
+                if args.verbose:
+                    info('Start contender at core %d.' % core)
+                contender_procset.add(multiprocessing.Process(target=CollectModule.compete, args=(contender, core)))
+            for proc in contender_procset:
+                proc.start()
         try:
             # Collect tarce for each target.
             target_coreset = target[CollectModule.CORE]
@@ -605,9 +607,10 @@ class CollectModule:
         finally:
             os.chdir(pwd)
             # Terminate all alive contender.
-            for proc in contender_procset:
-                if proc.is_alive():
-                    proc.terminate()
+            if CollectModule.RUN_CONTENDER:
+                for proc in contender_procset:
+                    if proc.is_alive():
+                        proc.terminate()
             # Close output.
             outfile.close()
         if args.verbose:
