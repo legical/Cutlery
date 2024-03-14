@@ -82,7 +82,7 @@ class CutMethod:
 
 
 class CutFuncGetter:
-    def __init__(self, max_seg: int, angr_cfg: angr.analyses.cfg.cfg_fast.CFGFast = None, binary: str = None, output_file: str = None) -> None:
+    def __init__(self, max_seg: int = 4, angr_cfg: angr.analyses.cfg.cfg_fast.CFGFast = None, binary: str = None, output_file: str = None) -> None:
         if angr_cfg is None:
             if binary is None:
                 raise ValueError("When creating the CutFuncGetter class, angr_cfg and binary cannot both be None.")

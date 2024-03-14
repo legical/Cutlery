@@ -1,5 +1,15 @@
 from functools import reduce
-import os, sys, math, json, datetime, random, signal, traceback, argparse, subprocess, multiprocessing
+import os
+import sys
+import math
+import json
+import datetime
+import random
+import signal
+import traceback
+import argparse
+import subprocess
+import multiprocessing
 
 helper = """
 Usage: python3 analysis.py command [options] ...
@@ -15,6 +25,16 @@ Provide pwcet analysis service.
 
         [output]
             Append probes separate by ',' into output.
+
+    cut      get all cut function.
+        positional argument     required    path to binary file.
+        -f, --function=         repeated    interested functions, default is main only.
+        -s, --max-seg=          optional    max segment num, default is 4.
+        -v, --verbose           optional    generate detail.
+        -o, --output=           required    path to save cut-node function list result.
+
+        [output]
+            Append cut-function separate by ',' into output.
 
     fuzz     automated test case generation via fuzzing.
         positional argument     required    path to binary file.
@@ -151,25 +171,36 @@ Provide pwcet analysis service.
             by positional argument, see PWCETGenerator/PWCETSolver.py for detail.
 """
 
-root = os.getenv('PTATM', 'None')
+# 获取当前被执行.py文件的绝对路径
+current_file = os.path.abspath(__file__)
+# 获取当前被执行.py文件的绝对目录
+current_directory = os.path.dirname(current_file)
+root = os.getenv('PTATM', current_directory)
+
 
 def exec(shellcmd: str) -> bool:
     return 0 == subprocess.run(shellcmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
 
+
 def execWithResult(shellcmd: str):
     return subprocess.run(shellcmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
 
 def issudo() -> bool:
     return os.getuid() == 0
 
+
 def report(s: str):
     sys.stdout.write('[%s] %s\n' % (datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), s))
+
 
 def info(s: str):
     report('[INFO] %s' % s)
 
+
 def warn(s: str):
     report('[WARN] %s' % s)
+
 
 class SegmentModule:
     @staticmethod
@@ -226,7 +257,26 @@ class SegmentModule:
             if args.verbose:
                 info('Done.')
         elif args.verbose:
-            info('Nothing to segment, check func arguments.')
+            warn('Nothing to segment, check func arguments.')
+
+
+class CutModule:
+    @staticmethod
+    def service(args):
+        from CFGCut import CutBuilder
+        cut_builder = CutBuilder.CutFuncGetter(max_seg=args.max_seg, binary=args.binary)
+        if args.verbose:
+            info(f'Start finding cut function list of {args.binary}')
+        seg_func_names = cut_builder.findCutFunctionFromMain()
+        if len(seg_func_names) != 0:
+            if args.verbose:
+                info(f'Save result {seg_func_names} into ➜  {args.output}')
+            with open(args.output, 'a') as output:
+                output.write('\n' + reduce(lambda x, y: x + ',' + y, seg_func_names))
+            if args.verbose:
+                info('Done.')
+        elif args.verbose:
+            warn('No cut-point function found, check code structure.')
 
 
 class FuzzModule:
@@ -243,9 +293,9 @@ class FuzzModule:
         fuzz_env.getSegInfo(function)
         if verbose:
             info(f'Get {function} Segment list : {fuzz_env.seginfo}')
-            
+
         return fuzz_env
-        
+
     @staticmethod
     def service(args):
         from Fuzz import FuzzTool
@@ -256,7 +306,8 @@ class FuzzModule:
         if not hasattr(args, 'afl_extra_cmd'):
             args.afl_extra_cmd = ""
 
-        fuzz_env = FuzzModule.initWorkspace(args.input, args.output, args.seg_info, args.binary, args.verbose, args.function)
+        fuzz_env = FuzzModule.initWorkspace(args.input, args.output, args.seg_info,
+                                            args.binary, args.verbose, args.function)
         fuzz_tool = FuzzTool.FuzzTool(fuzz_env.afl_root)
 
         # generate & run AFL cmd.
@@ -270,48 +321,44 @@ class FuzzModule:
             afl_cmd = fuzz_tool.genAFLCmd(pre_afl_cmd, suf_afl_cmd, args.afl_extra_cmd)
             if args.verbose:
                 info(f'Execute AFL command ➜  {afl_cmd}')
-            
-            # user_input = input("请输入一个值（输入'n'退出程序）：")
-            # if user_input == 'n':
-            #     info('Args: %s. Exit.' % args)
-            #     break
-            
+                
             exit_code = fuzz_tool.run_command(afl_cmd)
             if args.verbose:
                 info(f'AFL fuzzing return [{exit_code}]. Merge seeds...')
             fuzz_env.mergeSeeds(offset)
             if args.verbose:
                 info(f'Fuzzing {args.function}+{offset} done.')
-        
-        elapsed_time = time.time() - start_time  # 计算总体耗时       
+
+        elapsed_time = time.time() - start_time  # 计算总体耗时
 
         if args.verbose:
             info(f'Segmented AFL all done. Total cost: {fuzz_tool.fuzztime(elapsed_time)}')
 
+
 class ControlModule:
     # MACRO for gencarsim.
-    NOP         = 'nop;'
-    SIMSRC      = root + '/L3Contention/CARSimulator.c'
-    SIMCMD      = 'gcc -DNOPSTR=\'"%s"\' -O1 -o %s %s'
+    NOP = 'nop;'
+    SIMSRC = root + '/L3Contention/CARSimulator.c'
+    SIMCMD = 'gcc -DNOPSTR=\'"%s"\' -O1 -o %s %s'
 
     # MACRO for genwcar.
-    RANDOMIZER  = root + '/L3Contention/RandomizeBuddy'
-    PROFILER    = root + '/L3Contention/profiler'
-    TMPFILE     = '/tmp/PTATM-wcar.json'
-    TARGETID    = 'target'
-    MODE        = 'SAMPLE_ALL'
-    INS         = 'INSTRUCTIONS'
-    LLC_ACC     = 'LLC_REFERENCES'
-    CYCLE       = 'CYCLES'
-    PERIOD      = 1000000000
-    PERFCMD     = '%s --output=%s --log=/dev/null --json-plan=\'%s\' --cpu=%%d'
-    REPEAT      = 1
+    RANDOMIZER = root + '/L3Contention/RandomizeBuddy'
+    PROFILER = root + '/L3Contention/profiler'
+    TMPFILE = '/tmp/PTATM-wcar.json'
+    TARGETID = 'target'
+    MODE = 'SAMPLE_ALL'
+    INS = 'INSTRUCTIONS'
+    LLC_ACC = 'LLC_REFERENCES'
+    CYCLE = 'CYCLES'
+    PERIOD = 1000000000
+    PERFCMD = '%s --output=%s --log=/dev/null --json-plan=\'%s\' --cpu=%%d'
+    REPEAT = 1
 
     # MACRO for service.
-    CORE        = 'core'
-    DIR         = 'dir'
-    CMD         = 'cmd'
-    LLC_WCAR    = 'llc-wcar'
+    CORE = 'core'
+    DIR = 'dir'
+    CMD = 'cmd'
+    LLC_WCAR = 'llc-wcar'
 
     @staticmethod
     def gencarsim(car, output):
@@ -425,18 +472,19 @@ class ControlModule:
         if args.verbose:
             info('Done.')
 
+
 class CollectModule:
     # MACRO for service.
-    RANDOMIZER  = root + '/L3Contention/RandomizeBuddy'
-    TARGET      = 'target'
-    CONTENDER   = 'contender'
-    CORE        = 'core'
-    TASK        = 'task'
-    DIR         = 'dir'
-    BINARY      = 'binary'
-    PROBES      = 'probes'
-    INPUTS      = 'inputs'
-    CMD         = 'cmd'
+    RANDOMIZER = root + '/L3Contention/RandomizeBuddy'
+    TARGET = 'target'
+    CONTENDER = 'contender'
+    CORE = 'core'
+    TASK = 'task'
+    DIR = 'dir'
+    BINARY = 'binary'
+    PROBES = 'probes'
+    INPUTS = 'inputs'
+    CMD = 'cmd'
 
     @staticmethod
     def gentrace(binary: str, command: str, uprobes: list, clock: str):
@@ -448,7 +496,8 @@ class CollectModule:
             # Add uprobes.
             for uprobe in uprobes:
                 if not TraceCollector.addprobe(binary, TraceCollector.PROBE_PREFIX + uprobe):
-                    raise Exception('Failed to add uprobe[%s] for binary[%s].' % (TraceCollector.PROBE_PREFIX + uprobe, binary))
+                    raise Exception('Failed to add uprobe[%s] for binary[%s].' %
+                                    (TraceCollector.PROBE_PREFIX + uprobe, binary))
             # Start collect.
             ok, info = TraceCollector.collectTrace(command, clock)
             if not ok:
@@ -463,12 +512,13 @@ class CollectModule:
     @staticmethod
     def compete(contender: dict, core: int):
         os.setpgid(0, 0)
+
         def handler(x, y):
             os.killpg(os.getpgid(0), signal.SIGKILL)
         signal.signal(signal.SIGTERM, handler)
 
         contenders, nr_contender = contender[CollectModule.TASK], len(contender[CollectModule.TASK])
-        gencmd = lambda task: 'cd %s && taskset -c %d %s' % (task[CollectModule.DIR], core, task[CollectModule.CMD])
+        def gencmd(task): return 'cd %s && taskset -c %d %s' % (task[CollectModule.DIR], core, task[CollectModule.CMD])
         while True:
             contender_id = random.randint(0, nr_contender-1)
             exec(gencmd(contenders[contender_id]))
@@ -563,9 +613,11 @@ class CollectModule:
         if args.verbose:
             info('Done.')
 
+
 class SeginfoModule:
     # MACRO for service.
-    MODE = { 'time': None, 'callinfo': None }
+    MODE = {'time': None, 'callinfo': None}
+
     @staticmethod
     def service(args):
         from SegmentInfoCollector import TraceTool
@@ -618,10 +670,11 @@ class SeginfoModule:
         if args.verbose:
             info('Done.')
 
+
 class PWCETModule:
     # MACRO for service.
-    EVT = { 'GEV': None, 'GPD': None }
-    MODE = { 'txt': None, 'png': None }
+    EVT = {'GEV': None, 'GPD': None}
+    MODE = {'txt': None, 'png': None}
 
     @staticmethod
     def service(args):
@@ -639,7 +692,7 @@ class PWCETModule:
             raise Exception('Unrecognized evt-type[%s].' % args.evt_type)
         if args.mode not in PWCETModule.MODE:
             raise Exception('Unrecognized mode[%s].' % args.mode)
-        
+
         # Check whether output is exist.
         if args.mode != 'txt' and os.path.exists(args.output):
             raise Exception('Output[%s] is already exist.' % args.output)
@@ -657,13 +710,13 @@ class PWCETModule:
             solver = PWCETSolver.GumbelSegmentListSolver()
         elif args.evt_type == 'GPD':
             solver = PWCETSolver.ExponentialParetoSegmentListSolver()
-        
+
         # Solve trace object.
         if args.verbose:
             info('Solve with force=%s.' % str(args.force))
         if not solver.solve(traceobj, args.force):
             raise Exception('Failed to solve seginfo[%s].\n[%s]' % (args.seginfo, solver.err_msg))
-        
+
         # Save solve result.
         if args.verbose:
             info('Save solve result into %s.' % args.seginfo)
@@ -698,6 +751,7 @@ class PWCETModule:
         if args.verbose:
             info('Done.')
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='pwcet analysis service.')
 
@@ -706,107 +760,122 @@ if __name__ == "__main__":
 
     # Add subcommand segment.
     segment = subparsers.add_parser('segment', help='parse binary file into segment')
-    segment.add_argument('binary', 
+    segment.add_argument('binary',
                          help='path to binary file')
-    segment.add_argument('-f', '--function', metavar='', action='extend', default=argparse.SUPPRESS, nargs='+', 
+    segment.add_argument('-f', '--function', metavar='', action='extend', default=argparse.SUPPRESS, nargs='+',
                          help='function name, default is main only')
-    segment.add_argument('-s', '--max-seg', metavar='', type=int, default=2, 
+    segment.add_argument('-s', '--max-seg', metavar='', type=int, default=2,
                          help='max segment num, default is 2')
-    segment.add_argument('-v', '--verbose', action='store_true', 
+    segment.add_argument('-v', '--verbose', action='store_true',
                          help='generate detail')
-    segment.add_argument('-o', '--output', metavar='', required=True, 
+    segment.add_argument('-o', '--output', metavar='', required=True,
                          help='path to save segment result')
     segment.set_defaults(func=SegmentModule.service)
 
+    # Add subcommand cut.
+    segment = subparsers.add_parser('cut', help='generate cut function list')
+    segment.add_argument('binary',
+                         help='path to binary file')
+    segment.add_argument('-s', '--max-seg', metavar='', type=int, default=4,
+                         help='max segment num of main fuction, default is 4')
+    segment.add_argument('-v', '--verbose', action='store_true',
+                         help='generate detail')
+    segment.add_argument('-o', '--output', metavar='', required=True,
+                         help='path to save cut-node function list result')
+    segment.set_defaults(func=CutModule.service)
+
     # Add subcommand fuzz.
     fuzz = subparsers.add_parser('fuzz', help='automated test case generation via fuzzing')
-    fuzz.add_argument('binary', 
-                         help='path to binary file')
-    fuzz.add_argument('-s', '--seg-info', metavar='', required=True, 
-                         help='path to store segment info')
-    fuzz.add_argument('-i', '--input', metavar='', required=True, 
-                         help='path to store AFL fuzzing starting seeds')
-    fuzz.add_argument('-r', '--readfile', action='store_true', 
-                         help='whether to use file as AFL fuzzing input seeds')
-    fuzz.add_argument('-o', '--output', metavar='', required=True, 
-                         help='path to save fuzzing-generated test cases')
-    fuzz.add_argument('-f', '--function', metavar='', action='extend', default=argparse.SUPPRESS, nargs='+', 
-                         help='function name, default is main only')
-    fuzz.add_argument('-a', '--afl-extra-cmd', metavar='', default='', 
-                         help='extra cmd for AFL, default is empty')
-    fuzz.add_argument('-b', '--binary-args', metavar='', default='', 
-                         help='arguments for binary, default is empty')
-    fuzz.add_argument('-v', '--verbose', action='store_true', 
-                         help='generate detail')
+    fuzz.add_argument('binary',
+                      help='path to binary file')
+    fuzz.add_argument('-s', '--seg-info', metavar='', required=True,
+                      help='path to store segment info')
+    fuzz.add_argument('-i', '--input', metavar='', required=True,
+                      help='path to store AFL fuzzing starting seeds')
+    fuzz.add_argument('-r', '--readfile', action='store_true',
+                      help='whether to use file as AFL fuzzing input seeds')
+    fuzz.add_argument('-o', '--output', metavar='', required=True,
+                      help='path to save fuzzing-generated test cases')
+    fuzz.add_argument('-f', '--function', metavar='', action='extend', default=argparse.SUPPRESS, nargs='+',
+                      help='function name, default is main only')
+    fuzz.add_argument('-a', '--afl-extra-cmd', metavar='', default='',
+                      help='extra cmd for AFL, default is empty')
+    fuzz.add_argument('-b', '--binary-args', metavar='', default='',
+                      help='arguments for binary, default is empty')
+    fuzz.add_argument('-v', '--verbose', action='store_true',
+                      help='generate detail')
     fuzz.set_defaults(func=FuzzModule.service)
 
     # Add subcommand control.
     control = subparsers.add_parser('control', help='generate shared resource controller of taskset')
-    control.add_argument('taskconf', 
+    control.add_argument('taskconf',
                          help="path to file who includes parallel tasks")
     control.add_argument('-w', '--llc-wcar', metavar='', type=int, default=argparse.SUPPRESS,
                          help='use llc wcar to generate resource controller')
-    control.add_argument('-F', '--force', action='store_true', 
+    control.add_argument('-F', '--force', action='store_true',
                          help='force to measure wcar for each task')
-    control.add_argument('-v', '--verbose', action='store_true', 
+    control.add_argument('-v', '--verbose', action='store_true',
                          help='generate detail')
-    control.add_argument('-o', '--output', metavar='', required=True, 
+    control.add_argument('-o', '--output', metavar='', required=True,
                          help='path to save control task')
     control.set_defaults(func=ControlModule.service)
 
     # Add subcommand collect.
     collect = subparsers.add_parser('collect', help='collect trace for task')
-    collect.add_argument('taskconf', 
+    collect.add_argument('taskconf',
                          help="path to config of the target to collect and its contenders")
-    collect.add_argument('-c', '--clock', metavar='', default='global', 
+    collect.add_argument('-c', '--clock', metavar='', default='global',
                          help='clock the tracer used, default is global, see man perf record')
-    collect.add_argument('-r', '--repeat', metavar='', type=int, default=20, 
+    collect.add_argument('-r', '--repeat', metavar='', type=int, default=20,
                          help='generate multiple trace information by repeating each input, default is 20')
-    collect.add_argument('-v', '--verbose', action='store_true', 
+    collect.add_argument('-v', '--verbose', action='store_true',
                          help='generate detail')
-    collect.add_argument('-o', '--output', metavar='', required=True, 
+    collect.add_argument('-o', '--output', metavar='', required=True,
                          help='path to save trace')
     collect.set_defaults(func=CollectModule.service)
 
     # Add subcommand seginfo.
     seginfo = subparsers.add_parser('seginfo', help='dump trace/seginfo, and generate a new seginfo')
-    seginfo.add_argument('-r', '--raw-trace', metavar='', action='extend', default=list(), nargs='+', 
+    seginfo.add_argument('-r', '--raw-trace', metavar='', action='extend', default=list(), nargs='+',
                          help='path to raw trace file')
-    seginfo.add_argument('-j', '--json-trace', metavar='', action='extend', default=list(), nargs='+', 
+    seginfo.add_argument('-j', '--json-trace', metavar='', action='extend', default=list(), nargs='+',
                          help='path to json trace file(segment info)')
-    seginfo.add_argument('-m', '--strip-mode', action='extend', choices=list(SeginfoModule.MODE.keys()), 
-                         default=argparse.SUPPRESS, nargs='+', 
+    seginfo.add_argument('-m', '--strip-mode', action='extend', choices=list(SeginfoModule.MODE.keys()),
+                         default=argparse.SUPPRESS, nargs='+',
                          help='choose time or callinfo or both to strip')
-    seginfo.add_argument('-v', '--verbose', action='store_true', 
+    seginfo.add_argument('-v', '--verbose', action='store_true',
                          help='generate detail')
-    seginfo.add_argument('-o', '--output', metavar='', required=True, 
+    seginfo.add_argument('-o', '--output', metavar='', required=True,
                          help='path to save seginfo')
     seginfo.set_defaults(func=SeginfoModule.service)
 
     # Add subcommand pwcet.
-    pwcet = subparsers.add_parser('pwcet', help='generate pwcet result, build arguments of extreme distribution for segment and expression for function')
-    pwcet.add_argument('seginfo', 
-                         help='path to segment information(or json trace)')
-    pwcet.add_argument('-f', '--function', metavar='', action='extend', default=argparse.SUPPRESS, nargs='+', 
-                         help='target functions to generate, default is main only')
-    pwcet.add_argument('-t', '--evt-type', choices=list(PWCETModule.EVT.keys()), default='GPD', 
-                         help='choose type of EVT family(GEV or GPD), default is GPD')
-    pwcet.add_argument('-F', '--force', action='store_true', 
-                         help='force to rebuild arguments of extreme distribution and expressions, even if they are already exist')
-    pwcet.add_argument('-p', '--prob', metavar='', type=float, action='extend', default=argparse.SUPPRESS, nargs='+', 
-                         help='exceedance probability, default is [1e-1, ..., 1e-9]')
-    pwcet.add_argument('-m', '--mode', choices=list(PWCETModule.MODE.keys()), default='txt', 
-                         help='output mode, choose txt or png, default is txt')
-    pwcet.add_argument('-v', '--verbose', action='store_true', 
-                         help='generate detail')
-    pwcet.add_argument('-o', '--output', metavar='', required=True, 
-                         help='path to save pwcet result')
+    pwcet = subparsers.add_parser(
+        'pwcet', help='generate pwcet result, build arguments of extreme distribution for segment and expression for function')
+    pwcet.add_argument('seginfo',
+                       help='path to segment information(or json trace)')
+    pwcet.add_argument('-f', '--function', metavar='', action='extend', default=argparse.SUPPRESS, nargs='+',
+                       help='target functions to generate, default is main only')
+    pwcet.add_argument('-t', '--evt-type', choices=list(PWCETModule.EVT.keys()), default='GPD',
+                       help='choose type of EVT family(GEV or GPD), default is GPD')
+    pwcet.add_argument('-F', '--force', action='store_true',
+                       help='force to rebuild arguments of extreme distribution and expressions, even if they are already exist')
+    pwcet.add_argument('-p', '--prob', metavar='', type=float, action='extend', default=argparse.SUPPRESS, nargs='+',
+                       help='exceedance probability, default is [1e-1, ..., 1e-9]')
+    pwcet.add_argument('-m', '--mode', choices=list(PWCETModule.MODE.keys()), default='txt',
+                       help='output mode, choose txt or png, default is txt')
+    pwcet.add_argument('-v', '--verbose', action='store_true',
+                       help='generate detail')
+    pwcet.add_argument('-o', '--output', metavar='', required=True,
+                       help='path to save pwcet result')
     pwcet.set_defaults(func=PWCETModule.service)
 
     try:
         # Check env.
         if os.getenv('PTATM') is None:
-            raise Exception("Set PTATM env with shrc at first.")
+            os.environ['PTATM'] = root
+            print('Not found env PTATM, auto set as', os.getenv('PTATM'))
+            # raise Exception("Set PTATM env with shrc at first.")
         # Parse arguments.
         args = parser.parse_args()
         # Process subcommands.
