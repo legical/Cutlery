@@ -4,10 +4,10 @@
         "task": [
             {
                 "dir": ".",
-                "binary": "/home/cxg/workspace/PTATM-AFL/afl-qemu-test/benchmark/test-ap/a",
+                "binary": "../afl-qemu-test/benchmark/test-ap/a",
                 "probes": [
                     "main__0=main", "main__1=main+0x46", "main__2=main+0x50", 
-                    "caseb__0=caseb", "caseb__1=caseb+0x5a", "caseb=caseb%return",
+                    "caseb__0=caseb", "caseb__1=caseb+0x5a",
                     "func3__0=func3", 
                     "main=main%return", "caseb=caseb%return", "func3=func3%return"
                 ],

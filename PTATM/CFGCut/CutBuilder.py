@@ -3,8 +3,6 @@ import networkx as nx
 import angr
 from CFG2Segment import CFGBase, CFGRefactor, SFGBase, SFGBuilder
 from functools import reduce
-import sys
-sys.path.append("..")
 
 
 class SegmentBuilder:

@@ -1,0 +1,165 @@
+
+[taskset -c 1 ../afl-qemu-test/benchmark/test-ap/a AaJJsa5] [global]
+4735686.310432,main__0
+4735686.310468,main__1
+4735686.310481,func3__0
+4735686.310495,func3__return
+4735686.310502,main__2
+4735686.310514,caseb__0
+4735686.310528,caseb__1
+4735686.310672,caseb__return
+4735686.310678,main__return
+
+[taskset -c 1 ../afl-qemu-test/benchmark/test-ap/a AiJJsa5] [global]
+4735694.083614,main__0
+4735694.083651,main__1
+4735694.083664,func3__0
+4735694.083678,func3__return
+4735694.083685,main__2
+4735694.083698,caseb__0
+4735694.083711,caseb__1
+4735694.083855,caseb__return
+4735694.083862,main__return
+
+[taskset -c 1 ../afl-qemu-test/benchmark/test-ap/a �aJJsa5] [global]
+4735701.820432,main__0
+4735701.820469,main__1
+4735701.820481,func3__0
+4735701.820495,func3__return
+4735701.820502,main__2
+4735701.820514,caseb__0
+4735701.820527,caseb__1
+4735701.820672,caseb__return
+4735701.820679,main__return
+
+[taskset -c 1 ../afl-qemu-test/benchmark/test-ap/a AaJJsa5] [global]
+4735709.479068,main__0
+4735709.479104,main__1
+4735709.479116,func3__0
+4735709.479131,func3__return
+4735709.479138,main__2
+4735709.479149,caseb__0
+4735709.479163,caseb__1
+4735709.479309,caseb__return
+4735709.479316,main__return
+
+[taskset -c 1 ../afl-qemu-test/benchmark/test-ap/a AiJJsa5] [global]
+4735717.245830,main__0
+4735717.245866,main__1
+4735717.245878,func3__0
+4735717.245893,func3__return
+4735717.245900,main__2
+4735717.245912,caseb__0
+4735717.245926,caseb__1
+4735717.246070,caseb__return
+4735717.246076,main__return
+
+[taskset -c 1 ../afl-qemu-test/benchmark/test-ap/a �aJJsa5] [global]
+4735726.095055,main__0
+4735726.095092,main__1
+4735726.095104,func3__0
+4735726.095118,func3__return
+4735726.095126,main__2
+4735726.095138,caseb__0
+4735726.095152,caseb__1
+4735726.095307,caseb__return
+4735726.095314,main__return
+
+[taskset -c 1 ../afl-qemu-test/benchmark/test-ap/a AaJJsa5] [global]
+4735737.922511,main__0
+4735737.922546,main__1
+4735737.922558,func3__0
+4735737.922572,func3__return
+4735737.922580,main__2
+4735737.922592,caseb__0
+4735737.922605,caseb__1
+4735737.922751,caseb__return
+4735737.922757,main__return
+
+[taskset -c 1 ../afl-qemu-test/benchmark/test-ap/a AiJJsa5] [global]
+4735745.770606,main__0
+4735745.770642,main__1
+4735745.770655,func3__0
+4735745.770668,func3__return
+4735745.770675,main__2
+4735745.770687,caseb__0
+4735745.770701,caseb__1
+4735745.770846,caseb__return
+4735745.770853,main__return
+
+[taskset -c 1 ../afl-qemu-test/benchmark/test-ap/a �aJJsa5] [global]
+4735753.675005,main__0
+4735753.675041,main__1
+4735753.675053,func3__0
+4735753.675067,func3__return
+4735753.675074,main__2
+4735753.675087,caseb__0
+4735753.675100,caseb__1
+4735753.675246,caseb__return
+4735753.675252,main__return
+
+[taskset -c 1 ../afl-qemu-test/benchmark/test-ap/a AaJJsa5] [global]
+4735761.484374,main__0
+4735761.484409,main__1
+4735761.484422,func3__0
+4735761.484436,func3__return
+4735761.484443,main__2
+4735761.484455,caseb__0
+4735761.484469,caseb__1
+4735761.484614,caseb__return
+4735761.484620,main__return
+
+[taskset -c 1 ../afl-qemu-test/benchmark/test-ap/a AiJJsa5] [global]
+4735769.284248,main__0
+4735769.284285,main__1
+4735769.284297,func3__0
+4735769.284311,func3__return
+4735769.284318,main__2
+4735769.284330,caseb__0
+4735769.284344,caseb__1
+4735769.284489,caseb__return
+4735769.284496,main__return
+
+[taskset -c 1 ../afl-qemu-test/benchmark/test-ap/a �aJJsa5] [global]
+4735777.163863,main__0
+4735777.163900,main__1
+4735777.163912,func3__0
+4735777.163926,func3__return
+4735777.163933,main__2
+4735777.163946,caseb__0
+4735777.163959,caseb__1
+4735777.164104,caseb__return
+4735777.164111,main__return
+
+[taskset -c 1 ../afl-qemu-test/benchmark/test-ap/a AaJJsa5] [global]
+4735786.966208,main__0
+4735786.966242,main__1
+4735786.966254,func3__0
+4735786.966269,func3__return
+4735786.966276,main__2
+4735786.966288,caseb__0
+4735786.966302,caseb__1
+4735786.966457,caseb__return
+4735786.966463,main__return
+
+[taskset -c 1 ../afl-qemu-test/benchmark/test-ap/a AiJJsa5] [global]
+4735796.404218,main__0
+4735796.404254,main__1
+4735796.404266,func3__0
+4735796.404280,func3__return
+4735796.404287,main__2
+4735796.404299,caseb__0
+4735796.404313,caseb__1
+4735796.404458,caseb__return
+4735796.404464,main__return
+
+[taskset -c 1 ../afl-qemu-test/benchmark/test-ap/a �aJJsa5] [global]
+4735804.204173,main__0
+4735804.204208,main__1
+4735804.204221,func3__0
+4735804.204234,func3__return
+4735804.204241,main__2
+4735804.204253,caseb__0
+4735804.204266,caseb__1
+4735804.204410,caseb__return
+4735804.204416,main__return

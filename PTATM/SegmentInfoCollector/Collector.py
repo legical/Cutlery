@@ -19,7 +19,7 @@ class TraceCollector:
     @staticmethod
     def addprobe(binary: str, probe: str) -> bool:
         cmd = "perf probe -x " + binary + " -a " + probe
-        print("exec:", cmd)
+        # print("exec:", cmd)
         return TraceCollector.exec(cmd)
 
     @staticmethod
