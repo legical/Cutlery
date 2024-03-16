@@ -287,7 +287,7 @@ if __name__ == "__main__":
         # Check env.
         if os.getenv('PTATM') is None:
             os.environ['PTATM'] = PTATM.root
-            print('Not found env PTATM, auto set as', os.getenv('PTATM'))
+            print('Not found env PTATM, auto set as [%s]' % os.getenv('PTATM'))
             # raise Exception("Set PTATM env with shrc at first.")
         # Parse arguments.
         args = parser.parse_args()
