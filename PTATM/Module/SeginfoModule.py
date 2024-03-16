@@ -3,14 +3,14 @@ import Module.PTATM as PTATM
 
  # MACRO for service.
 MODE = {'time': None, 'callinfo': None}
-@staticmethod
+
 def service(args):
     from SegmentInfoCollector import TraceTool
     # Check whether output is exist.
     if os.path.exists(args.output):
         raise Exception('Output[%s] is already exist.' % args.output)
     # Check whether there is something to do with trace.
-    nr_trace = len(args.raw_trace) + len(args.json_trace)
+    nr_trace = len(args.input_trace) + len(args.json_trace)
     if nr_trace == 0:
         PTATM.warn('Nothing to dump.')
         return
@@ -20,9 +20,9 @@ def service(args):
     # Build trace object(seginfo).
     traceobj = TraceTool.Trace()
     # Fill raw trace.
-    rawfiller = TraceTool.RawTraceStringFiller(traceobj)
+    rawfiller = TraceTool.RawTraceStringFiller(traceobj, args.direct)
     jsonfiller = TraceTool.JsonTraceFiller(traceobj)
-    for rtrace in args.raw_trace:
+    for rtrace in args.input_trace:
         if args.verbose:
             PTATM.info('Build raw trace[%s].' % rtrace)
         if rawfiller.fill(open(rtrace, 'r').read()) == False:

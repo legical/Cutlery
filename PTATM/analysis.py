@@ -247,13 +247,15 @@ if __name__ == "__main__":
 
     # Add subcommand seginfo.
     seginfo = subparsers.add_parser('seginfo', help='dump trace/seginfo, and generate a new seginfo')
-    seginfo.add_argument('-r', '--raw-trace', metavar='', action='extend', default=list(), nargs='+',
+    seginfo.add_argument('-i', '--input-trace', metavar='', action='extend', default=list(), nargs='+',
                          help='path to raw trace file')
     seginfo.add_argument('-j', '--json-trace', metavar='', action='extend', default=list(), nargs='+',
                          help='path to json trace file(segment info)')
     seginfo.add_argument('-m', '--strip-mode', action='extend', choices=list(SeginfoModule.MODE.keys()),
                          default=argparse.SUPPRESS, nargs='+',
                          help='choose time or callinfo or both to strip')
+    seginfo.add_argument('-d', '--direct', action='store_true',
+                         help='use cut-func direct seginfo')
     seginfo.add_argument('-v', '--verbose', action='store_true',
                          help='generate detail')
     seginfo.add_argument('-o', '--output', metavar='', required=True,

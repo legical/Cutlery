@@ -63,8 +63,8 @@ class SegmentFunction:
         return SegmentFunction.makeSegmentName(self.function.name, str(len(self.segments)))
 
     @staticmethod
-    def makeSegmentName(funcname: str, segno: str):
-        return funcname + SegmentFunction.SEG_NAME_SEP + segno
+    def makeSegmentName(funcname: str, segno: str, SEP: str = SEG_NAME_SEP):
+        return funcname + SEP + segno
 
     # Return None or [function name, segment no.]
     @staticmethod

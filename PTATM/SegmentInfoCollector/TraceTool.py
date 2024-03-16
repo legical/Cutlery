@@ -146,8 +146,51 @@ class RawTraceStringFiller(TraceFiller):
             9,main__return
         ...
     """
-    def __init__(self, trace: Trace) -> None:
+    def __init__(self, trace: Trace, direct: bool = False) -> None:
         super().__init__(trace)
+        self.direct = direct
+
+    def buildFromSingleRawTraceDirect(self, command: str, clock: str, timetraces: list[str]) -> Trace|None:
+        # Init trace object.
+        traceObject = Trace()
+        traceObject.command.add(command)
+        traceObject.clock = clock
+        # Segment stack contains items whose format is (time, funcname, segno, and callstack contains items of func entry and func return, 
+        # whose format is as same as segment stack.
+        func_domain = list()
+        try:
+            timetraces = [[time] + list(SegmentFunction.parseSegmentName(segname)) for time, segname in (trace.split(',') for trace in timetraces)]
+            (last_time, last_funcname, last_segno) = timetraces[0]
+            func_domain.append((last_funcname, last_time))
+
+            for cur_time, cur_funcname, cur_segno in timetraces[1:]:
+                # save this trace time.
+                last_segname = SegmentFunction.makeSegmentName(last_funcname, last_segno, "_")
+                cur_segname = SegmentFunction.makeSegmentName(cur_funcname, cur_segno, "_")
+                segname = SegmentFunction.makeSegmentName(last_segname, cur_segname, "->")
+                segcost = float(cur_time) - float(last_time)
+                if segcost > 0:
+                    for fname, _ in func_domain:
+                        traceObject.getSegmentNormcost(fname, segname).setdefault(Trace.COST_TIME, list()).append(segcost)
+                    
+                # Maybe we should update func_domain.
+                if SegmentFunction.entrySegment(cur_segno):
+                    func_domain.append((cur_funcname, cur_time))
+                elif SegmentFunction.returnSegment(cur_segno):
+                    if cur_funcname == func_domain[-1][0]:
+                        traceObject.getFunctionFullcost(cur_funcname).setdefault(Trace.COST_TIME, list()).append(float(cur_time) - float(func_domain.pop()[1]))
+                    else:
+                        raise Exception(f"{cur_funcname} may not be a cut-func.")
+                
+                # Update last_time, last_funcname, last_segno.
+                last_time, last_funcname, last_segno = cur_time, cur_funcname, cur_segno
+                
+            # Repair format for traceObject.dump.
+            DumpFiller(traceObject).fill()
+        except Exception as _:
+            self.err_msg += "Parse time trace failed.\n"
+            return None
+        return traceObject
 
     def buildFromSingleRawTrace(self, command: str, clock: str, timetraces: list[str]) -> Trace|None:
         # Init trace object.
@@ -242,7 +285,10 @@ class RawTraceStringFiller(TraceFiller):
             if begin != len(rawtraces):
                 timetraces = rawtraces[begin:] if i == len(headline_info) - 1 else rawtraces[begin: headline_info[i+1][0]]
                 # Build trace object from timetraces.
-                traceObject = self.buildFromSingleRawTrace(command, clock, timetraces)
+                if self.direct:
+                    traceObject = self.buildFromSingleRawTraceDirect(command, clock, timetraces)
+                else:
+                    traceObject = self.buildFromSingleRawTrace(command, clock, timetraces)
                 # Append trace object into self.trace with TraceObjectFiller.
                 if traceObject is None or not TraceObjectFiller(self.trace).fill(traceObject):
                     # TODO: Return or not return None if parse failed?
