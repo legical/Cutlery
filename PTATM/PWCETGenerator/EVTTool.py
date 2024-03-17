@@ -1,6 +1,9 @@
 import statsmodels.tsa.stattools as stattools
 from abc import abstractmethod
-from scipy.stats import gamma, genpareto, genextreme, cramervonmises
+import numpy as np
+from scipy.stats import gamma, genpareto, genextreme, rv_discrete, cramervonmises
+from statsmodels.distributions.empirical_distribution import ECDF
+from typing import Union
 
 # We can generate a pwcet estimate/plot from a PWCETInterface.
 class PWCETInterface:
@@ -18,6 +21,26 @@ class PWCETInterface:
     @abstractmethod
     def copy(self):
         pass
+
+class EmpiricalDistribution(PWCETInterface):
+    def __init__(self, ecdf_func):
+        super().__init__()
+        self.ecdf_func = ecdf_func
+
+    def isf(self, exceed_prob: float) -> float:
+        return self.ecdf_func.x[np.argmax(self.ecdf_func.y >= 1 - exceed_prob)]
+
+    def expression(self) -> str:
+        return f"Empirical Distribution: x={self.ecdf_func.x}, y={self.ecdf_func.y}"
+
+    def copy(self):
+        return EmpiricalDistribution(self.ecdf_func)
+    
+    def cdf(self, x):
+        return self.ecdf_func(x)
+
+    def getCDF(self):
+        return rv_discrete(name='EmpiricalDistribution', values=(self.ecdf_func.x, self.ecdf_func.y))
 
 class ExtremeDistribution(PWCETInterface):
     PARAM_SHAPE = "c"
@@ -58,6 +81,15 @@ class ExtremeDistribution(PWCETInterface):
     # Return self.ext_func.kwds.
     def kwds(self) -> dict:
         return self.ext_func.kwds.copy()
+    
+    def cdf(self, x):
+        return self.ext_func.cdf(x)
+
+    def getCDF(self):
+        class EVTCDF(rv_discrete):
+            def _pmf(self, x):
+                return self.ext_func._pdf(x)
+        return EVTCDF(name='EVTCDF')
 
 class GEV(ExtremeDistribution):
     def __init__(self, params: dict) -> None:
@@ -79,6 +111,37 @@ class GPD(ExtremeDistribution):
     def copy(self):
         return GPD(self.kwds())
 
+class MixedDistribution(PWCETInterface):
+    def __init__(self, EVTDistribution: ExtremeDistribution, ECDFDistribution: EmpiricalDistribution, threshold:float = None):
+        self.evt = EVTDistribution
+        self.ecdf = ECDFDistribution
+        self.threshold = threshold
+    
+    def isf(self, exceed_prob: float) -> float:
+        if self.threshold is None:
+            return self.ecdf.isf(exceed_prob)
+        else:
+            return self.evt.isf(exceed_prob)
+        
+    def expression(self) -> str:
+        return f"****** Mixed Distribution ******\nThreshold: {self.threshold}\n{self.ecdf.expression()}\n{self.evt.expression()}"
+
+    def copy(self):
+        return MixedDistribution(self.evt.copy(), self.ecdf.copy(), self.threshold)
+    
+    def getCDF(self):
+        if self.threshold is None:
+            return self.ecdf.getCDF()
+        class Mixed(rv_discrete):
+            def _pmf(self, x):                
+                return np.where(x > self.threshold, self.evt.getCDF()._pmf(x), self.ecdf.getCDF()._pmf(x))
+        return Mixed(name='SPD')
+    
+    def cdf(self, x):
+        if self.threshold is None:
+            return self.ecdf.cdf(x)
+        return np.where(x > self.threshold, self.evt.cdf(x), self.ecdf.cdf(x))
+    
 class LinearCombinedExtremeDistribution(PWCETInterface):
     def __init__(self) -> None:
         # A dict maps extd function(ExtremeDistribution object) to it's weight.
@@ -214,9 +277,25 @@ class PositiveLinearExponentialPareto(LinearCombinedExtremeDistribution):
         self.should_gen = True
         return super().div(k)
 
+class ECDFGenerator():
+    def __init__(self) -> None:
+        pass
+
+    def fit(self, raw_data: list) -> EmpiricalDistribution:
+        if raw_data is None:
+            return None
+        ecdf_func = ECDF(raw_data)
+        return self.gen(ecdf_func)
+
+    def gen(self, ecdf_func) -> EmpiricalDistribution:
+        return EmpiricalDistribution(ecdf_func)
 
 # A theory tool that helps to generate ExtremeDistribution object.
 class EVT:
+    # Confidence level for hypothesis test.
+    # p_value < ConfidenceLevel means we can reject the null hypothesis.
+    ConfidenceLevel = 0.05
+
     def __init__(self) -> None:
         # A list saves extreme samples.
         self.ext_data = list()
@@ -225,7 +304,7 @@ class EVT:
 
     # Returns none if fit faled, otherwise returns an ExtremeDistribution object. 
     @abstractmethod
-    def fit(self, raw_data: list) -> ExtremeDistribution:
+    def fit(self, raw_data: list, filter: int) -> ExtremeDistribution:
         # pick raw samples until we pass kpss,bds,lrd test -> pick extreme value & EVT fit until we pass cvm test.
         return None
 
@@ -238,11 +317,17 @@ class EVT:
     # Stationarity test for raw data.
     def kpss(self, raw_data: list):
         return stattools.kpss(raw_data)
+    
+    def passed_kpss(self, raw_data: list) -> bool:
+        return self.kpss(raw_data)[1] > EVT.ConfidenceLevel
 
     # Independent and identically distributed test for raw data.
     def bds(self, raw_data: list):
         return stattools.bds(raw_data)
 
+    def passed_bds(self, raw_data: list) -> bool:
+        return self.bds(raw_data)[1] > EVT.ConfidenceLevel
+    
     # Long range dependence test.
     def lrd(self, raw_data: list):
         # TODO: fill this function.
@@ -251,6 +336,9 @@ class EVT:
     # Test for goodness of fit of a cumulative distribution function.
     def cvm(self, ext_data: list, ext_func):
         return cramervonmises(ext_data, ext_func.cdf)
+    
+    def passed_cvm(self, ext_data: list, ext_func) -> bool:
+        return self.cvm(ext_data, ext_func)[1] > EVT.ConfidenceLevel
 
 # Generate GEV distribution witl EVT tool.
 class GEVGenerator(EVT):
@@ -261,7 +349,7 @@ class GEVGenerator(EVT):
         self.fix_c = fix_c
 
     @staticmethod
-    def BM(data: list, bs: int) -> list:
+    def BM(data: list, bs: int, filter: int = MIN_NRSAMPLE) -> list:
         ext_vals, nr_sample = list(), len(data)
         for i in range(nr_sample//bs + 1):
             s = i * bs
@@ -273,7 +361,7 @@ class GEVGenerator(EVT):
 
     def fit(self, raw_data: list) -> ExtremeDistribution:
         # Pick raw samples until we pass kpss,bds,lrd test -> pick extreme value & EVT fit until we pass cvm test.
-        if len(raw_data) < GEVGenerator.MIN_NRSAMPLE:
+        if len(raw_data) < filter:
             self.err_msg = "Too few samples[%d] to fit.\n" % len(raw_data)
             return None
         if max(raw_data) <= 0:
@@ -281,7 +369,7 @@ class GEVGenerator(EVT):
             return None
 
         # Use BM to filter ext_data.
-        max_bs = len(raw_data) // GEVGenerator.MIN_NRSAMPLE
+        max_bs = len(raw_data) // filter
         self.ext_data = GEVGenerator.BM(raw_data, max_bs)
 
         # TODO: pass test.
@@ -306,16 +394,26 @@ class GPDGenerator(EVT):
         super().__init__()
         self.fix_c = fix_c
 
+    # return 2 list: PoT data & rest data
     @staticmethod
-    def POT(data: list, nr_ext: int) -> list:
+    def POT(data: list, nr_ext: Union[int, float] = 4):
         nr_sample = len(data)
         if nr_ext < 0 or nr_ext >= nr_sample:
-            return data[:]
-        data = data.copy()
-        data.sort()
-        return data[-nr_ext:]
+            return data[:], None
+        filter_data = data.copy()
+        filter_data.sort()
+        # if type(nr_ext) is int, choos max nr_ext
+        if isinstance(nr_ext, int):            
+            return filter_data[-nr_ext:], filter_data[:-nr_ext]
+        elif isinstance(nr_ext, float):
+            if nr_ext < 1.0:
+                # choose max nr_sample * nr_ext
+                threshold = int(nr_sample * nr_ext)
+                return filter_data[threshold:], filter_data[:threshold]
+        else:
+            return data[:], None
 
-    def fit(self, raw_data: list) -> ExtremeDistribution:
+    def fit(self, raw_data: list, filter: Union[int, float] = 4) -> ExtremeDistribution:
         # Pick raw samples until we pass kpss,bds,lrd test -> pick extreme value & EVT fit until we pass cvm test.
         if len(raw_data) < GPDGenerator.MIN_NRSAMPLE:
             self.err_msg += "Too few samples[%d] to fit.\n" % len(raw_data)
@@ -325,9 +423,9 @@ class GPDGenerator(EVT):
             return None
 
         # Use POT to filter ext_data.
-        self.ext_data = GPDGenerator.POT(raw_data, 4)
+        self.ext_data, _ = GPDGenerator.POT(raw_data, filter)
 
-        # TODO: pass test.
+        # TODO: pass test. Failed return None.
 
         # Fit args for evt class and build evt function.
         if self.fix_c is None:
@@ -348,3 +446,30 @@ class GumbelGenerator(GEVGenerator):
 class ExponentialParetoGenerator(GPDGenerator):
     def __init__(self) -> None:
         super().__init__(0)
+
+class MixedDistributionGenerator():
+    EVT_TYPE = {'GEV': GEVGenerator, 'GPD': GPDGenerator}
+
+    def __init__(self, evt_type: str = 'GPD'):
+        self.threshold = None
+
+    # Fit GPD and ECDF.
+    # TODO: Fit GEV and ECDF.
+    def fit(self, raw_data: list, filter: Union[int, float] = 4) -> MixedDistribution:
+        gpdgen, ecdfgen = GPDGenerator(), ECDFGenerator()
+        gpd = gpdgen.fit(raw_data, filter)
+        if gpd is None:
+            # use ECDF fit all data.  MixedDistribution: None ecdf None
+            ecdf = ecdfgen.fit(raw_data)
+        else:
+            gpd_data, ecdf_data = GPDGenerator.POT(raw_data, filter)
+            self.threshold = gpd_data[0]
+            # use ECDF fit rest data. MixedDistribution: gpd ecdf self.threshold
+            ecdf = ecdfgen.fit(ecdf_data)
+
+        return self.gen(gpd, ecdf, self.threshold)
+
+    def gen(self, EVTDistribution: ExtremeDistribution, ECDFDistribution: EmpiricalDistribution, threshold:float = None) -> MixedDistribution:
+        if EVTDistribution is None and ECDFDistribution is None:
+            return None
+        return MixedDistribution(EVTDistribution, ECDFDistribution, threshold)
