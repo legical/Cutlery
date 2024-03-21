@@ -79,25 +79,32 @@ def service(args):
     if args.verbose:
         PTATM.info(cop_model.expression())
 
+    evt_distribution = None
     # 尝试3次pWCET拟合
     for i in range(3):
         task_costs = simulate_and_merge(args, raw_data, cop_model)
         evt_distribution = PWCET_DISTRIBUTIONS[args.evt_type]()
         if evt_distribution.passed_kpss(task_costs) and evt_distribution.passed_bds(task_costs):
-            # fit pWCET
-            if args.verbose:
-                PTATM.info(f'Fit [{args.function}] pWCET with evt-type[{args.evt_type}].')
-            pwcet_model = evt_distribution.fit(task_costs)
-            if pwcet_model is not None:
-                if args.verbose:
-                    PTATM.info(f'Generate [{args.function}] result into [{args.output}].')
-                with open(args.output, 'a') as output:
-                    # Write head line.
-                    headline = reduce(lambda x, y: str(x)+','+str(y), ['function'] + args.prob)
-                    output.write('\n' + headline)
-                    pwcet = [round(pwcet_model.isf(p), 4) for p in args.prob]
-                    body = reduce(lambda x, y: str(x)+','+str(y), args.function + pwcet)
-                    output.write('\n' + body)
-                break
+            # 平稳性检验通过
+            break
         else:
             PTATM.warning(f'pWCET fitting failed for {i+1} times.')
+
+    if args.verbose:
+        PTATM.info(f'Fit [{args.function}] pWCET with evt-type[{args.evt_type}].')
+    # 若三次拟合都不成功，则使用最后一次拟合结果
+    pwcet_model = evt_distribution.fit(task_costs)
+    if pwcet_model is not None:
+        if args.verbose:
+            PTATM.info(f'Generate [{args.function}] result into [{args.output}].')
+        with open(args.output, 'a') as output:
+            # Write head line.
+            headline = reduce(lambda x, y: str(x)+','+str(y), ['function'] + args.prob)
+            output.write('\n' + headline)
+            # gen pWCET
+            pwcet = [round(pwcet_model.isf(p), 4) for p in args.prob]
+            body = reduce(lambda x, y: str(x)+','+str(y), args.function + pwcet)
+            output.write('\n' + body)
+
+    if args.verbose:
+        PTATM.info('Done.')
