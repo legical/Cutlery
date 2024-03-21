@@ -1,7 +1,7 @@
 import os
 import traceback
 import argparse
-from Module import PTATM, SegmentModule, CutModule, FuzzModule, ControlModule, CollectModule, SeginfoModule, PWCETModule
+from Module import PTATM, SegmentModule, CutModule, FuzzModule, ControlModule, CollectModule, SeginfoModule, PWCETModule, CopulaModule
 
 helper = """
 Usage: python3 analysis.py command [options] ...
@@ -282,6 +282,23 @@ if __name__ == "__main__":
     pwcet.add_argument('-o', '--output', metavar='', required=True,
                        help='path to save pwcet result')
     pwcet.set_defaults(func=PWCETModule.service)
+
+    # Add subcommand copula.
+    pwcet = subparsers.add_parser(
+        'copula', help='generate pwcet result with vine-copula model')
+    pwcet.add_argument('-i', '--input',
+                       help='path to segment information(or json trace)')
+    pwcet.add_argument('-f', '--function', metavar='',
+                       help='target functions to generate, default is main')
+    pwcet.add_argument('-t', '--evt-type', choices=list(CopulaModule.PWCET_DISTRIBUTIONS.keys()), default='GPD',
+                       help='choose type of EVT family(GEV or GPD), default is GPD')    
+    pwcet.add_argument('-p', '--prob', metavar='', type=float, action='extend', default=argparse.SUPPRESS, nargs='+',
+                       help='exceedance probability, default is [1e-1, ..., 1e-9]')
+    pwcet.add_argument('-v', '--verbose', action='store_true',
+                       help='generate detail')
+    pwcet.add_argument('-o', '--output', metavar='', required=True,
+                       help='path to save pwcet result')
+    pwcet.set_defaults(func=CopulaModule.service)
 
     try:
         # Check env.

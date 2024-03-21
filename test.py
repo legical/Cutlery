@@ -17,18 +17,25 @@ def generate_ordered_dict(num_entries, max_list_length):
     return ordered_dict
 
 # 生成包含随机列表的OrderedDict对象
-num_entries = 5
-max_list_length = 10
+num_entries = 3
+max_list_length = 4
 random_ordered_dict = generate_ordered_dict(num_entries, max_list_length)
 
 # 打印结果
 for key, value in random_ordered_dict.items():
-    print(f"{key}: {value}")
+    print(f"{key}: {value}\t len(key):{len(random_ordered_dict[key])} len(value):{len(value)}")
 
-valuess = list()
-for key, value in random_ordered_dict.items():
-    valuess.append(value)
-    
-valuess = np.array(valuess)
-print(type(valuess), len(valuess))
-print(type(valuess[0]))
+def combine_values_by_index(ordered_dict):
+    """将相同下标的值相加并保存到一个列表中"""
+    max_length = min(len(value) for value in ordered_dict.values())
+    combined_list = []
+    for idx in range(max_length):
+        task_cost = sum(ordered_dict[key][idx] for key in ordered_dict if idx < len(ordered_dict[key]))
+        combined_list.append(task_cost)
+    return combined_list
+
+# 将相同下标的值相加并保存到一个列表中
+combined_list = combine_values_by_index(random_ordered_dict)
+
+# 打印结果
+print(combined_list)

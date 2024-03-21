@@ -14,6 +14,18 @@ class DataProcess:
 
     @staticmethod
     def json2data(json_file: str, extract_func: str = 'main') -> OrderedDict:
+        """transform seginfo json to d*n data.
+
+        Args:
+            json_file (str): path to save seginfo json file.
+            extract_func (str, optional): Extract information about the execution time of the function. Defaults to 'main'.
+
+        Raises:
+            FileNotFoundError: seginfo json file not found.
+
+        Returns:
+            OrderedDict: d*n time cost data.
+        """
         # check json file is exist?
         if not os.path.exists(json_file):
             raise FileNotFoundError(f"{json_file} not found")
@@ -68,6 +80,38 @@ class DataProcess:
 
         return data
 
+    @staticmethod
+    def merge_simulate_obsdata(raw_data: OrderedDict, inverse_simulate_data: list) -> OrderedDict:
+        """Merge raw_data and inverse_simulate_data to a new OrderedDict.
+
+        Args:
+            raw_data (OrderedDict): d*n Raw data.
+            inverse_simulate_data (list): d*n matrix.
+
+        Returns:
+            OrderedDict: d*n matrix.
+        """
+        if raw_data is None and inverse_simulate_data is None:
+            raise ValueError("Raw data or inverse_simulate_data is None.")
+        else:
+            if len(raw_data) != len(inverse_simulate_data):
+                raise ValueError(
+                    f"Raw data number[{len(raw_data)}] not equal to inverse_simulate_data dimension[{len(inverse_simulate_data)}].")
+            
+            for key, inverse_values in zip(raw_data.keys(), inverse_simulate_data):
+                raw_data[key].append(inverse_values)
+
+            return raw_data
+        
+    @staticmethod
+    def combine(raw_data: OrderedDict) -> list:
+        """将相同下标的值相加并保存到一个列表中，作为任务执行时间"""
+        min_length = min(len(value) for value in raw_data.values())
+        task_costs = []
+        for idx in range(min_length):
+            task_cost = sum(raw_data[key][idx] for key in raw_data if idx < len(raw_data[key]))
+            task_costs.append(task_cost)
+        return task_costs
 
 class CopulaModel(EVTTool.PWCETInterface):
     def __init__(self, copula, raw_models, name: str = None):
@@ -109,20 +153,28 @@ class CopulaModel(EVTTool.PWCETInterface):
         sim_values = self.copula.simulate(n, qrng, num_threads, seeds)
         # return d*n matrix. each row is a random variable of data.
         return sim_values.T
-    
-    def inverse_transform(self, data: np.ndarray) -> np.ndarray:
+
+    def inverse_transform(self, data: np.ndarray) -> list:
         """Inverse transform the data to original distribution.
 
         Args:
             data (np.ndarray): d*n matrix. each row is a random variable observations.
 
         Returns:
-            np.ndarray: d*n matrix. each row is a origin random variable data.
+            list: d*n matrix. each row is a origin random variable data.
         """
-        if self.raw_models is None:
-            raise ValueError("No distribution model specified.")
+        if self.raw_models is None or data is None:
+            raise ValueError("Raw models or data is None.")
         else:
-            return np.array([model.ppf(data[i]) for i, model in enumerate(self.raw_models)]).T
+            if len(self.raw_models) != len(data):
+                raise ValueError(
+                    f"Model number[{len(self.raw_models)}] not equal to simulate-data dimension[{len(data)}].")
+            inverse_data = list()
+            for model, values in zip(self.raw_models, data):
+                inverse_values = [model.isf(value) for value in values]
+                inverse_data.append(inverse_values)
+
+            return inverse_data
 
 
 class CopulaGenerator:
@@ -171,7 +223,7 @@ class CopulaGenerator:
         """Gives pseudo-observations using model.cdf or empirical probability.
 
         Args:
-            model (PWCETInterface): data distribution model.
+            model (PWCETInterface): data distribution model. Type is usually SPD denoted by MixedDistribution.
             raw_data (list): Raw data, consistent with the distribution represented by the model.
 
         Returns:
