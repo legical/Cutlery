@@ -33,3 +33,5 @@ def info(s: str):
 def warn(s: str):
     report('[WARN] %s' % s)
 
+def error(s: str):
+    report('[ERROR] %s' % s)
