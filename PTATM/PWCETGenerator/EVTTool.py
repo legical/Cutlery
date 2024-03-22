@@ -7,9 +7,8 @@ from scipy.special import ndtr
 from statsmodels.distributions.empirical_distribution import ECDF
 from typing import Union
 
+
 # We can generate a pwcet estimate/plot from a PWCETInterface.
-
-
 class PWCETInterface:
     def __init__(self, name: str = "") -> None:
         self.name = name

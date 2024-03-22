@@ -171,7 +171,7 @@ class CopulaModel(EVTTool.PWCETInterface):
                     f"Model number[{len(self.raw_models)}] not equal to simulate-data dimension[{len(data)}].")
             inverse_data = list()
             for model, values in zip(self.raw_models, data):
-                inverse_values = [model.isf(value) for value in values]
+                inverse_values = [model.isf(1-value) for value in values]
                 inverse_data.append(inverse_values)
 
             return inverse_data
