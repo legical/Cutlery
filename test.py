@@ -1,7 +1,11 @@
 import random
 from collections import OrderedDict
 from statsmodels.distributions.empirical_distribution import ECDF
+import argparse
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import genpareto, gaussian_kde
+import PTATM.PWCETGenerator.EVTTool as EVTTool
 
 def generate_random_list(length):
     """生成随机列表"""
@@ -16,54 +20,29 @@ def generate_ordered_dict(num_entries, max_list_length):
         ordered_dict[key] = value
     return ordered_dict
 
-import argparse
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import genpareto, gaussian_kde
+def genGPDdata(size: int = 200) -> list:
+    # 设置 GPD 分布的参数
+    shape = 0.5  # Shape 参数
+    loc = 0      # Location 参数
+    scale = 1    # Scale 参数
 
-# 生成符合广义帕累托分布的数据
-def generate_pareto_data(size, c, loc, scale):
-    return genpareto.rvs(c, loc=loc, scale=scale, size=size)
+    # 生成 GPD 分布的随机数据
+    data = genpareto.rvs(shape, loc=loc, scale=scale, size=size)
+    return list(data)
 
-def main(output_path):
-    # 参数设置
-    size = 1000
-    c = 0.5
-    loc = 0
-    scale = 1
-
-    # 生成符合广义帕累托分布的数据
-    pareto_data = generate_pareto_data(size, c, loc, scale)
-
-    # 将数据分成两部分：尾部和中心
-    tail_threshold = np.percentile(pareto_data, 80)
-    tail_data = pareto_data[pareto_data >= tail_threshold]
-    center_data = pareto_data[pareto_data < tail_threshold]
-
-    # 对尾部数据使用广义帕累托分布拟合
-    params = genpareto.fit(tail_data)
-    x_range_tail = np.linspace(min(tail_data), max(tail_data), 1000)
-    y_genpareto = genpareto.pdf(x_range_tail, *params)
-
-    # 对中心数据使用核密度函数拟合
-    kde = gaussian_kde(center_data)
-    x_range_center = np.linspace(min(center_data), max(center_data), 1000)
-    y_kde = kde(x_range_center)
-
-    # 绘制原始数据散点图
-    plt.scatter(pareto_data, np.zeros_like(pareto_data), alpha=0.5, label='Original Data (Scatter)')
-
-    # 绘制尾部拟合曲线和中心拟合曲线
-    plt.plot(x_range_tail, y_genpareto, color='green', linestyle='--', label='Tail Fit (Genpareto)')
-    plt.plot(x_range_center, y_kde, color='red', label='Center Fit (Gaussian KDE)')
-    plt.legend()
-
-    # 保存图像
-    plt.savefig(output_path)
-    print(f"Image saved to {output_path}")
+def test():
+    # 生成数据
+    data = genGPDdata()
+    # 计算 ECDF
+    ecdf_gen, gpd_gen = EVTTool.ECDFGenerator(), EVTTool.GPDGenerator()
+    ecdf, gpd = ecdf_gen.fit(data), gpd_gen.fit(data)
+    choose_data = data[2]
+    print(f'Choose data: {choose_data}')
+    print(f'ECDF: isf[{ecdf.cdf(choose_data)}]={ecdf.isf(ecdf.cdf(choose_data))}\t isf(ccdf)[{1-ecdf.cdf(choose_data)}]={ecdf.isf(1-ecdf.cdf(choose_data))}')
+    print(f'GPD: isf[{gpd.cdf(choose_data)}]={gpd.isf(gpd.cdf(choose_data))}\t isf(ccdf)[{1-gpd.cdf(choose_data)}]={gpd.isf(1-gpd.cdf(choose_data))}')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate and save scatter plot with probability density function fits')
     parser.add_argument('-o', '--output', type=str, default='output.png', help='Output file path')
     args = parser.parse_args()
-    main(args.output)
+    test()

@@ -205,7 +205,7 @@ class CopulaGenerator:
             raw_data (list): d*n Raw data, consistent with the distribution represented by the model. Dimension equals number of row.
 
         Returns:
-            np.array: n*d data, conforming to a uniform distribution. Dimension equals number of column.
+            np.array: 〜U(0,1). n*d CDF of raw_data. Dimension equals number of column.
         """
         if models is None:
             # Unspecified distribution type, empirical distributions are used to transform to pseudo-observations

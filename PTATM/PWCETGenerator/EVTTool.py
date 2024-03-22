@@ -16,6 +16,14 @@ class PWCETInterface:
     # Return a value with exceedance probability(exceed_prob).
     @abstractmethod
     def isf(self, exceed_prob: float) -> float:
+        """isf(1-CDF) = original data
+
+        Args:
+            exceed_prob (float): 1-CDF
+
+        Returns:
+            float: original data
+        """
         pass
 
     # Return an expression.
@@ -37,7 +45,7 @@ class KernelDensityEstimation(PWCETInterface):
     def __init__(self, kde_func, name: str = None):
         super().__init__(name)
         self.kde_func = kde_func
-        self.name += '[KDE]'
+        self.name = '[KDE]'
 
     def isf(self, exceed_prob: float) -> float:
         x = self.kde_func.dataset
@@ -70,7 +78,7 @@ class EmpiricalDistribution(PWCETInterface):
     def __init__(self, ecdf_func, name: str = None):
         super().__init__(name)
         self.ecdf_func = ecdf_func
-        self.name += '[ECDF]'
+        self.name = '[ECDF]'
 
     def isf(self, exceed_prob: float) -> float:
         return self.ecdf_func.x[np.argmax(self.ecdf_func.y >= 1 - exceed_prob)]
@@ -101,7 +109,7 @@ class ExtremeDistribution(PWCETInterface):
         super().__init__(name)
         # Here ext_class is original generator from scipy.stat.
         self.ext_class = ext_class
-        self.name += '[EVT]'
+        self.name = '[EVT]'
         # Here ext_func is original extreme distribution object from scipy.stat
         self.gen(params)
 
@@ -143,7 +151,7 @@ class ExtremeDistribution(PWCETInterface):
 class GEV(ExtremeDistribution):
     def __init__(self, params: dict, name: str = None) -> None:
         super().__init__(genextreme, params, name)
-        self.name += '[GEV]'
+        self.name = '[GEV]'
 
     def expression(self) -> str:
         return "GEV" + super().expression()
@@ -155,7 +163,7 @@ class GEV(ExtremeDistribution):
 class GPD(ExtremeDistribution):
     def __init__(self, params: dict, name: str = None) -> None:
         super().__init__(genpareto, params, name)
-        self.name += '[GPD]'
+        self.name = '[GPD]'
 
     def expression(self) -> str:
         return "GPD" + super().expression()
@@ -171,7 +179,7 @@ class MixedDistribution(PWCETInterface):
         self.kde = KDE
         self.threshold = threshold
         self.ecdf = ECDF
-        self.name += '[Mixed]'
+        self.name = '[Mixed]'
 
     def isf(self, exceed_prob: float) -> float:
         if self.threshold is None:
@@ -209,7 +217,7 @@ class LinearCombinedExtremeDistribution(PWCETInterface):
         super.__init__(name)
         # A dict maps extd function(ExtremeDistribution object) to it's weight.
         self.weighted_extdfunc = dict()
-        self.name += '[LinearCombined]'
+        self.name = '[LinearCombined]'
 
     def expression(self) -> str:
         expr = str()
@@ -255,7 +263,7 @@ class LinearCombinedExtremeDistribution(PWCETInterface):
 class PositiveLinearGumbel(LinearCombinedExtremeDistribution):
     def __init__(self, name: str = None) -> None:
         super().__init__(name)
-        self.name += '[PositiveLinearGumbel]'
+        self.name = '[PositiveLinearGumbel]'
 
     def copy(self):
         linear_extd = PositiveLinearGumbel()
@@ -297,7 +305,7 @@ class PositiveLinearExponentialPareto(LinearCombinedExtremeDistribution):
         self.sum_loc = None
         self.max_scale = None
         self.should_gen = True
-        self.name += '[PositiveLinearExponentialPareto]'
+        self.name = '[PositiveLinearExponentialPareto]'
 
     def copy(self):
         linear_extd = PositiveLinearExponentialPareto()
