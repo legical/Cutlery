@@ -97,12 +97,12 @@ class DataProcess:
             if len(raw_data) != len(inverse_simulate_data):
                 raise ValueError(
                     f"Raw data number[{len(raw_data)}] not equal to inverse_simulate_data dimension[{len(inverse_simulate_data)}].")
-            
+
             for key, inverse_values in zip(raw_data.keys(), inverse_simulate_data):
                 raw_data[key].append(inverse_values)
 
             return raw_data
-        
+
     @staticmethod
     def combine(raw_data: OrderedDict) -> list:
         """将相同下标的值相加并保存到一个列表中，作为任务执行时间"""
@@ -112,6 +112,7 @@ class DataProcess:
             task_cost = sum(raw_data[key][idx] for key in raw_data if idx < len(raw_data[key]))
             task_costs.append(task_cost)
         return task_costs
+
 
 class CopulaModel(EVTTool.PWCETInterface):
     def __init__(self, copula, raw_models, name: str = None):
@@ -219,7 +220,7 @@ class CopulaGenerator:
         return self.uniform_data
 
     # change data to U(0,1). 1-row n-col
-    def pseudo_obs(self, model, raw_data: list) -> np.array:
+    def pseudo_obs(self, model, raw_data: list) -> np.ndarray:
         """Gives pseudo-observations using model.cdf or empirical probability.
 
         Args:
