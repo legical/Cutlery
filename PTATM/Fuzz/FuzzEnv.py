@@ -1,5 +1,7 @@
+import datetime
 import os
 import shutil
+import subprocess
 
 
 class FuzzEnv:
@@ -205,9 +207,7 @@ class FuzzEnv:
     # time is the current time
     def saveOldOutSeeds(self):
         # 获取当前时间
-        import time
-        import subprocess
-        time = time.strftime("%Y%m%d%H%M%S", time.localtime())
+        time = datetime.now().strftime("%Y%m%d%H%M%S")
 
         # 创建old文件夹
         self.old_out_path = self.out_path + "_old"
@@ -245,3 +245,23 @@ class FuzzEnv:
 
             # 保存本次输出seeds
             self.saveOldOutSeeds()
+
+    def savecases(self) -> str:
+        # check input path exist?
+        self.__checkInPathExist()
+
+        cases_file = self.binary + datetime.now().strftime("%Y%m%d%H%M%S")
+        cases_file_path = os.path.join(self.out_path, f"{cases_file}.txt")
+
+        # copy all .in files in in_path to cases_file
+        aggregated_content = ""
+        for filename in os.listdir(self.in_path):
+            if filename.endswith(".in"):
+                with open(os.path.join(self.in_path, filename), "r") as file:
+                    aggregated_content += file.read()
+
+        # 将聚合后的内容写入到输出文件中
+        with open(cases_file_path, "a") as output_file:
+            output_file.write(aggregated_content)
+        
+        return cases_file_path

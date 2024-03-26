@@ -36,9 +36,11 @@ def service(args):
         exit_code = fuzz_tool.run_command(afl_cmd)
         if args.verbose:
             PTATM.info(f'AFL fuzzing return [{exit_code}]. Merge seeds...')
-        fuzz_env.mergeSeeds(offset)
+        fuzz_env.mergeSeeds(offset)        
         if args.verbose:
             PTATM.info(f'Fuzzing {args.function}+{offset} done.')
     elapsed_time = time.time() - start_time  # 计算总体耗时
+    cases_file = fuzz_env.savecases()
     if args.verbose:
-        PTATM.info(f'Segmented AFL all done. Total cost: {fuzz_tool.fuzztime(elapsed_time)}')
+        PTATM.info(f'Generated test cases have been saved to {cases_file}. Total cost: {fuzz_tool.fuzztime(elapsed_time)}')
+        PTATM.info(f'All done.')
