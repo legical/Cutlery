@@ -224,10 +224,9 @@ class MixedDistribution(PWCETInterface):
     def cdf(self, x):
         if self.threshold is None:
             return self.ECDFmodel.cdf(x)
-        elif x >= self.threshold:
-            return self.EVTmodel.cdf(x)
         else:
-            return self.KDEmodel.cdf(x)
+            kde_cdf, evt_cdf = self.KDEmodel.cdf(x), self.EVTmodel.cdf(x)
+            return np.where(x > self.threshold, evt_cdf, kde_cdf)
 
 
 class LinearCombinedExtremeDistribution(PWCETInterface):
@@ -479,21 +478,35 @@ class GEVGenerator(EVT):
     def __init__(self, **kwargs) -> None:
         super().__init__()
         self.fix_c = kwargs.get('fix_c', None)
+        """Divide data into nr_sample blocks. Default is 2."""
+        self.nr_sample = kwargs.get('nr_sample', GEVGenerator.MIN_NRSAMPLE)
 
     @staticmethod
     def BM(data: list, bs: int) -> list:
-        ext_vals, nr_sample = list(), len(data)
-        for i in range(nr_sample//bs + 1):
+        """
+        Finds the maximum value in each block of data with a given block size.
+
+        Args:
+            data (list): The input data.
+            bs (int): The block size.
+
+        Returns:
+            list: A list of maximum values in each block.
+        """
+        ext_vals, data_length = list(), len(data)
+        for i in range(data_length // bs + 1):
             s = i * bs
             e = s + bs
-            if s >= nr_sample:
+            if s >= data_length:
                 break
-            ext_vals.append(max(data[s:] if e > nr_sample else data[s:e]))
+            ext_vals.append(max(data[s:] if e > data_length else data[s:e]))
         return ext_vals
 
-    def fit(self, raw_data: list, nr_sample: int = MIN_NRSAMPLE) -> ExtremeDistribution:
+    def fit(self, raw_data: list, nr_sample: int = None) -> ExtremeDistribution:
+        if nr_sample is not None:
+            self.nr_sample = nr_sample
         # Pick raw samples until we pass kpss,bds,lrd test -> pick extreme value & EVT fit until we pass cvm test.
-        if len(raw_data) < nr_sample:
+        if len(raw_data) < self.nr_sample:
             self.err_msg = "Too few samples[%d] to fit.\n" % len(raw_data)
             return None
         if max(raw_data) <= 0:
@@ -501,7 +514,8 @@ class GEVGenerator(EVT):
             return None
 
         # Use BM to filter ext_data.
-        max_bs = len(raw_data) // nr_sample
+        max_bs = len(raw_data) // self.nr_sample
+        # Divide {len(raw_data)} data into {self.nr_sample} blocks, max block size is {max_bs}.
         self.ext_data = GEVGenerator.BM(raw_data, max_bs)
 
         # TODO: pass test.
@@ -529,10 +543,19 @@ class GPDGenerator(EVT):
         self.pot_method = kwargs.get('pot_method', 'cluster')
         self.pot_arg = kwargs.get('pot_arg', None)
 
-    # return list: PoT data
     @staticmethod
     def POT(data: list, pot_method: str = 'cluster', pot_arg=None):
-        data = np.sort(data)
+        """
+        Calculate Peaks-over-Threshold (POT) for a given dataset.
+
+        Args:
+            data (list): The input dataset.
+            pot_method (str, optional): The method used to calculate the threshold. Defaults to 'cluster'.
+            pot_arg (optional): Additional argument for the pot_method. Defaults to None.
+
+        Returns:
+            np.ndarray: The sorted array of extreme value data.
+        """
         pot = DataFilter.PoT(data)
         threshold = pot.filter(pot_method, pot_arg)
         evt_data = [x for x in data if x >= threshold]
@@ -550,12 +573,12 @@ class GPDGenerator(EVT):
             return None
 
         self.ext_data = self.POT(raw_data, self.pot_method, self.pot_arg)
-        # print(f"get {len(self.ext_data)} samples from {len(raw_data)} samples.")
+        # Use PoT method [{self.pot_method}] to get {len(self.ext_data)} samples from {len(raw_data)} samples.
         step = 5
         loops = int(len(self.ext_data) / step)
         for i in range(loops):
             if len(self.ext_data) < 4:
-                # print(f"Too less {len(self.ext_data)} samples.")
+                # Too less {len(self.ext_data)} samples.
                 break
             # TODO: pass test. Failed return None.
 

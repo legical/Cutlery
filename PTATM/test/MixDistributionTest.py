@@ -24,32 +24,34 @@ def plot_data(raw_data, output: str):
     # 绘制ECDF散点图 和 斜率图
     # ECDF散点图：x为源数据，y为1-CDF
     from PWCETGenerator import DataFilter
-    data = np.sort(raw_data)
+    # data = np.sort(raw_data)
+    data = raw_data
     ecdf = DataFilter.CoordinatePoints(x=data)
     plt.figure(figsize=(36, 18))
     plt.scatter(ecdf.getx(), ecdf.gety(), label='ECDF_raw', marker='.', color=(0., 0.5, 0.))
 
     # 绘制拟合的SPD模型    TODO: test mix GEV
-    genSPD = EVTTool.MixedDistributionGenerator('GEV')
+    genSPD = EVTTool.MixedDistributionGenerator('GEV', nr_sample=200, fix_c=0)
     SPDmodel = genSPD.fit(data)
     print(f"混合分布拟合结果：\n{SPDmodel.expression()}\n")
+    data = np.sort(raw_data)
     ccdf_spd = [1-SPDmodel.cdf(i) for i in data]
     plt.scatter(data, ccdf_spd, label='SEV', marker='.', color=(0., 0., 0.5))
 
-    evt_data = [x for x in data if x >= SPDmodel.threshold]    
-    ecdf = DataFilter.CoordinatePoints(x=evt_data)
-    plt.scatter(ecdf.getx(), ecdf.gety(), label='ECDF_evt', marker='.', color=(0.5, 0.5, 0.))
+    # evt_data = [x for x in data if x >= SPDmodel.threshold]    
+    # ecdf = DataFilter.CoordinatePoints(x=evt_data)
+    # plt.scatter(ecdf.getx(), ecdf.gety(), label='ECDF_evt', marker='.', color=(0.5, 0.5, 0.))
 
-    # GEV_gen = EVTTool.GEVGenerator()
-    # GEVmodel = GEV_gen.fit(data, 1000)
-    # ccdf_gev = [1-GEVmodel.cdf(i) for i in data]
-    # plt.scatter(data, ccdf_gev, label='GEV', marker='.', color=(0.5, 0., 0.))
+    GEV_gen = EVTTool.GEVGenerator()
+    GEVmodel = GEV_gen.fit(raw_data, 100)
+    ccdf_gev = [1-GEVmodel.cdf(i) for i in data]
+    plt.scatter(data, ccdf_gev, label='GEV', marker='.', color=(0.5, 0., 0.))
 
-    GPDgen = EVTTool.GPDGenerator()
-    GPD = GPDgen.fit(data)
-    ccdf_gpd = [1-GPD.cdf(i) for i in data]
-    # plt.scatter(data, ccdf_gpd, label='GPD', marker='.', color=(0., 0.5, 0.5))
-    plt.plot(data, ccdf_gpd, label='GPD')
+    # GPDgen = EVTTool.GPDGenerator()
+    # GPD = GPDgen.fit(data)
+    # ccdf_gpd = [1-GPD.cdf(i) for i in data]
+    # # plt.scatter(data, ccdf_gpd, label='GPD', marker='.', color=(0., 0.5, 0.5))
+    # plt.plot(data, ccdf_gpd, label='GPD')
 
     plt.legend(loc="best")
     plt.title('1-CDF')

@@ -115,10 +115,11 @@ class DataProcess:
 
 
 class CopulaModel(EVTTool.PWCETInterface):
-    def __init__(self, copula, raw_models, name: str = None):
-        super().__init__(name)
+    def __init__(self, copula, raw_models, name: str = "[CopulaModel]"):
+        super().__init__()
         self.copula = copula
         self.raw_models = raw_models
+        self.name = name
 
     def isf(self, exceed_prob: float) -> float:
         """return inverse CDF value of exceed_prob. not implemented.
@@ -133,10 +134,10 @@ class CopulaModel(EVTTool.PWCETInterface):
         return None
 
     def expression(self) -> str:
-        return self.copula.str()
+        return f"{self.name}\n{self.copula.str()}"
 
     def copy(self):
-        return CopulaModel(self.copula)
+        return CopulaModel(self.copula, self.raw_models, self.name)
 
     def simulate(self, n: int, qrng: bool = False, num_threads: int = 1, seeds: list = []) -> np.ndarray:
         """simulate n samples from a vine copula model.
@@ -233,14 +234,19 @@ class CopulaGenerator:
         try:
             # if model has cdf method
             if hasattr(model, 'cdf'):
-                return np.array(model.cdf(raw_data))
+                cdf_values = [model.cdf(value) for value in raw_data]
+                return np.array(cdf_values)
             else:
                 return pv.to_pseudo_obs(np.array(raw_data))
         except Exception as e:
             print(f'Error when getting observation with model[{model}]: {e}')
             return None
 
-    def make_structure(self, selected_structure: str = 'DVineStructure', order: list = None, center: int = 0):
+    def make_structure(self, **kwargs):
+        selected_structure = kwargs.get('selected_structure', 'DVineStructure')
+        order = kwargs.get('order', None)
+        center = kwargs.get('center', 0)
+
         structure = selected_structure[:1]
         if structure in CopulaGenerator.VineStructures['CVineStructure']:
             if order is None:
@@ -260,10 +266,11 @@ class CopulaGenerator:
             raise ValueError(f"Invalid structure[{selected_structure}].")
 
     # Default fit D-vine copula
-    def fit(self, selected_structure: str = 'DVineStructure', order: list = None, center: int = 0):
-        structure = self.make_structure(selected_structure, order, center)
-        Dcop = pv.Vinecop(data=self.uniform_data, structure=structure)
-        return self.gen(Dcop, selected_structure)
+    def fit(self, **kwargs):
+        selected_structure = kwargs.get('selected_structure', 'DVineStructure')
+        structure = self.make_structure(**kwargs)
+        cop = pv.Vinecop(data=self.uniform_data, structure=structure)
+        return self.gen(cop, selected_structure)
 
-    def gen(self, copula, name: str = None):
+    def gen(self, copula, name: str = "[CopulaModel]"):
         return CopulaModel(copula, self.models, name)

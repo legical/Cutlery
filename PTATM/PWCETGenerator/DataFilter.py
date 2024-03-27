@@ -281,7 +281,7 @@ class MeanChangePointDetector:
 
 class PoT:
     def __init__(self, data: list):
-        self.data = data
+        self.data = np.sort(data)
         self.threshold = None
 
     def threshold(self):
@@ -317,9 +317,8 @@ class PoT:
         """
         if n is None:
             n = 4
-        sorted_data = np.sort(self.data)
         nr_ext = abs(n)
-        self.threshold = sorted_data[-nr_ext]
+        self.threshold = self.data[-nr_ext]
         return self.normal(self.threshold)
 
     def percent_of_max(self, percent_max: float = 0.95):
