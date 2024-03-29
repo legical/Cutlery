@@ -31,7 +31,7 @@ def plot_data(raw_data, output: str):
     plt.scatter(ecdf.getx(), ecdf.gety(), label='ECDF_raw', marker='.', color=(0., 0.5, 0.))
 
     # 绘制拟合的SPD模型    TODO: test mix GEV
-    genSPD = EVTTool.MixedDistributionGenerator('GEV', nr_sample=200, fix_c=0)
+    genSPD = EVTTool.MixedDistributionGenerator('GEV', nr_sample=200)
     SPDmodel = genSPD.fit(data)
     print(f"混合分布拟合结果：\n{SPDmodel.expression()}\n")
     data = np.sort(raw_data)
@@ -43,7 +43,7 @@ def plot_data(raw_data, output: str):
     # plt.scatter(ecdf.getx(), ecdf.gety(), label='ECDF_evt', marker='.', color=(0.5, 0.5, 0.))
 
     GEV_gen = EVTTool.GEVGenerator()
-    GEVmodel = GEV_gen.fit(raw_data, 100)
+    GEVmodel = GEV_gen.fit(raw_data, 200)
     ccdf_gev = [1-GEVmodel.cdf(i) for i in data]
     plt.scatter(data, ccdf_gev, label='GEV', marker='.', color=(0.5, 0., 0.))
 

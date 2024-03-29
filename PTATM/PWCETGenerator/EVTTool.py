@@ -192,8 +192,9 @@ class MixedDistribution(PWCETInterface):
         super().__init__()
         self.EVTmodel = kwargs.get('EVT', None)
         self.KDEmodel = kwargs.get('KDE', None)
-        self.threshold = kwargs.get('threshold', None)
         self.ECDFmodel = kwargs.get('ECDF', None)
+        self.threshold = kwargs.get('threshold', None)
+        self.threshold_cdf = self.ECDFmodel.cdf(self.threshold) if self.threshold is not None else None
         self.name = '[Mixed]'
 
     def isf(self, exceed_prob: float) -> float:
@@ -201,7 +202,12 @@ class MixedDistribution(PWCETInterface):
             return self.ECDFmodel.isf(exceed_prob)
         else:
             # TODO: Return isf for different distributions selected according to the thresholds
-            return max(self.KDEmodel.isf(exceed_prob), self.EVTmodel.isf(exceed_prob))
+            if exceed_prob > 1-self.threshold_cdf:
+                exceed_prob = 1-(1-exceed_prob)/self.threshold_cdf
+                return self.KDEmodel.isf(exceed_prob)
+            else:
+                exceed_prob = exceed_prob/(1-self.threshold_cdf)
+                return self.EVTmodel.isf(exceed_prob)
 
     def expression(self) -> str:
         if self.threshold is None:
@@ -225,8 +231,12 @@ class MixedDistribution(PWCETInterface):
         if self.threshold is None:
             return self.ECDFmodel.cdf(x)
         else:
-            kde_cdf, evt_cdf = self.KDEmodel.cdf(x), self.EVTmodel.cdf(x)
-            return np.where(x > self.threshold, evt_cdf, kde_cdf)
+            if x < self.threshold:
+                # [0, self.threshold_cdf)
+                return self.KDEmodel.cdf(x)*self.threshold_cdf
+            else:
+                # [self.threshold_cdf, 1]
+                return self.threshold_cdf + (1 - self.threshold_cdf)*self.EVTmodel.cdf(x)
 
 
 class LinearCombinedExtremeDistribution(PWCETInterface):
@@ -560,7 +570,7 @@ class GPDGenerator(EVT):
         threshold = pot.filter(pot_method, pot_arg)
         evt_data = [x for x in data if x >= threshold]
         if len(evt_data) < 4:
-                evt_data = data[-4:]
+            evt_data = data[-4:]
         return np.sort(evt_data)
 
     def fit(self, raw_data) -> ExtremeDistribution:
@@ -576,7 +586,7 @@ class GPDGenerator(EVT):
         # Use PoT method [{self.pot_method}] to get {len(self.ext_data)} samples from {len(raw_data)} samples.
         step = 5
         loops = int(len(self.ext_data) / step)
-        for i in range(loops):
+        for i in range(1):
             if len(self.ext_data) < 4:
                 # Too less {len(self.ext_data)} samples.
                 break
@@ -588,10 +598,12 @@ class GPDGenerator(EVT):
             else:
                 params = genpareto.fit(self.ext_data, f0=self.fix_c)
 
-            _, p_value = kstest(self.ext_data, 'genpareto', args=params)
-            if p_value > EVT.ConfidenceLevel:
-                # print(f"using GPD fit {len(self.ext_data)} samples from {len(raw_data)} data succeed.")
-                break
+            result = cramervonmises(self.ext_data, genpareto.cdf, params)
+            if isinstance(result, tuple):
+                _, p_value = result
+                if p_value > EVT.ConfidenceLevel:
+                    print(f"using GPD fit {len(self.ext_data)} samples from {len(raw_data)} data succeed.")
+                    break
             self.ext_data = self.ext_data[step:]
 
         c, loc, scale = params
@@ -672,5 +684,6 @@ class MixedDistributionGenerator():
         """
         ECDF = kwargs.get('ECDF', None)
         if ECDF is None:
+            # fit failed.
             return None
         return MixedDistribution(**kwargs)

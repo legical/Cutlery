@@ -21,7 +21,7 @@ def read_evt_data():
 def plot_data(data, output):
     # 绘制ECDF散点图 和 斜率图
     # ECDF散点图：x为源数据，y为1-CDF
-    from PWCETGenerator import DataFilter
+    from PWCETGenerator import DataFilter, EVTTool
     ecdf = DataFilter.CoordinatePoints(x=data)
 
     slopes, x_data = ecdf.slopes()
@@ -37,9 +37,22 @@ def plot_data(data, output):
         clustery.append(cluster[0][1])
         clustery.append(center[1])
 
+    spd_gen = EVTTool.MixedDistributionGenerator('GPD')
+    spd_model = spd_gen.fit(data)
+    print(f"混合分布拟合结果：\n{spd_model.expression()}\n")
+    spd_ccdf = [1 - spd_model.cdf(i) for i in data]
+
+    gev_gen = EVTTool.GEVGenerator()
+    gev_model = gev_gen.fit(data, 200)
+    print(f"GEV分布拟合结果：\n{gev_model.expression()}\n")
+    sev_ccdf = [1 - gev_model.cdf(i) for i in data]
+
     plt.figure(figsize=(18, 9))
     plt.scatter(ecdf.getx(),ecdf.gety(),label='ecdf',marker='o',color=(0.,0.5,0.))
-    plt.scatter(slope.getx(),slope.gety(),label='slope',marker='.',color=(0.,0.,0.5))
+    # plt.scatter(slope.getx(),slope.gety(),label='slope',marker='.',color=(0.,0.,0.5))
+
+    plt.plot(data,spd_ccdf,label='Mix-SPD',color=(0.5,0.,0.))
+    plt.plot(data,sev_ccdf,label='GEV',color=(0.5,0.5,0.))
     plt.plot(clusterx, clustery, 'b*--', alpha=0.5, linewidth=1, label='acc')
     plt.legend(loc="best")
     plt.savefig(output)
@@ -49,5 +62,5 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--output', type=str, default='output.png', help='Output file path')
     args = parser.parse_args()
 
-    data, _ = read_evt_data()
+    _, data = read_evt_data()
     plot_data(data, args.output)
