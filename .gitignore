@@ -1,1 +1,3 @@
 afl-qemu-test/out*
+afl-qemu-test/benchmark/copula/out/
+afl-qemu-test/benchmark/copula/afl/

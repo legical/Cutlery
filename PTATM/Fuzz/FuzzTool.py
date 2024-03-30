@@ -1,11 +1,12 @@
 import subprocess
+from . import FuzzEnv
 
-
-class FuzzTool:
-    def __init__(self, AFL_ROOT_PATH="/usr/local/bin/") -> None:
-        self.afl_fuzz = AFL_ROOT_PATH + "afl-fuzz"
-        self.afl_tmin = AFL_ROOT_PATH + "afl-tmin"
-        self.afl_qemu_trace = AFL_ROOT_PATH + "afl-qemu-trace"
+class FuzzCtrl:
+    def __init__(self) -> None:
+        afl_root = FuzzEnv.AFLConfig.getAFLRoot()
+        self.afl_fuzz = afl_root + "afl-fuzz"
+        self.afl_tmin = afl_root + "afl-tmin"
+        self.afl_qemu_trace = afl_root + "afl-qemu-trace"
 
     # generate AFL Command Line Prefixes
     def genPreAFLCmd(self, in_path: str, out_path: str, seg_info: str) -> str:

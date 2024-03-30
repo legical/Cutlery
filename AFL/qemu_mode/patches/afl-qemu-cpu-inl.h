@@ -67,7 +67,7 @@
 
 static void append_debug(const char* format, ...)
 {
-  if (getenv("DEBUG_MODE")) {
+  if (getenv("DEBUG_FILE")) {
     char* debug_file = getenv("DEBUG_FILE");
     // 打开文件以追加写入
     FILE* file = fopen(debug_file, "a");
@@ -105,7 +105,7 @@ static unsigned char *afl_area_ptr;
 abi_ulong afl_entry_point, /* ELF entry point (_start) */
           afl_start_code,  /* .text start pointer      */
           afl_end_code,    /* .text end pointer        */
-          afl_main_offset = 0;    /* target program main + offset address for segmentation */
+          afl_exit_addr = 0;    /* target program main + offset address for segmentation */
 
 /* Set in the child process in forkserver mode: */
 
@@ -304,11 +304,14 @@ static inline void afl_maybe_log(abi_ulong cur_loc, CPUState *cpu) {
 
   afl_area_ptr[cur_loc ^ prev_loc]++;
   prev_loc = cur_loc >> 1;
-  append_debug("Child [%d] reach2 cur_local:%u, cur:%u, main+offset:%u, reach? %d\n", getpid(), cur_local, cur_loc, afl_main_offset, ((int)afl_main_offset == (int)cur_local) ? 1 : 0);
+  append_debug("Child [%d] reach2 cur_local:%u, cur:%u, main+offset:%u, reach? %d\n", getpid(), cur_local, cur_loc, afl_exit_addr, ((int)afl_exit_addr == (int)cur_local) ? 1 : 0);
 
   /* 如果分段偏移量不为0，证明设置了偏移，检测cur_loc是否运行到main start + offset */  
-  if (afl_main_offset && (int)afl_main_offset == (int)cur_local) {
-    append_debug("Child [%d] reach seg. cur_local:%u, cur:%u, main+offset:%u\n", getpid(), cur_local, cur_loc, afl_main_offset);
+  if (afl_exit_addr && (int)afl_exit_addr == (int)cur_local) {
+    // main return point
+    if (1 == (int)afl_exit_addr) return;
+    
+    append_debug("Child [%d] reach seg. cur_local:%u, cur:%u, main+offset:%u\n", getpid(), cur_local, cur_loc, afl_exit_addr);
     CPUClass *cc = CPU_GET_CLASS(cpu);
     cc->cpu_exec_exit(cpu);
     rcu_read_unlock();
@@ -378,7 +381,7 @@ static void afl_seg_offset() {
       return;
   }  
   // 从文件中读取数据到变量中
-  fscanf(file, "%lu", &afl_main_offset);
+  fscanf(file, "%lu", &afl_exit_addr);
   // 关闭文件
   fclose(file);  
   // 删除文件

@@ -3,80 +3,13 @@ import os
 import shutil
 import subprocess
 
+import angr
 
-class FuzzEnv:
-    # [Attribute]
-    #   segment_info            A list, segment address offset.
-    #   in_path                 file path of AFL fuzz seeds.
-    #   out_path                file path of save test cases.
-    #   afl_cmds                additional AFL commands.
-    # [Member]
-    #   get_node                Get CFG node by addr.
 
-    # init
-    def __init__(self, in_path: str, out_path: str, seg_path: str, binary: str):
-        self.in_path = in_path
-        self.out_path = out_path
-        self.seg_path = seg_path
-        self.binary = binary
-        # self.afl_cmds = afl_cmds
-        self.seginfo = []
-        self.afl_root = os.environ.get('AFL_ROOT_PATH', '/usr/local/bin/')
-
-    # Delete all files&folders
-    def __cleanPath(self, path):
-        if os.path.exists(path):
-            for root, dirs, files in os.walk(path, topdown=False):
-                for name in files:
-                    os.remove(os.path.join(root, name))
-                for name in dirs:
-                    os.rmdir(os.path.join(root, name))
-
-    # Check if the folder exists, if not, create the directory
-    def __checkPathExist(self, path: str, clear=False):
-        if not os.path.exists(path):
-            os.makedirs(path)
-        elif clear:
-            self.__cleanPath(path)
-
-    # Check if the file exists, if not, raise a FileNotFoundError
-    def __checkFileExist(self, path: str):
-        if not os.path.exists(path):
-            raise FileNotFoundError(f"File {path} does not exist.")
-
-    # Check if the input folder exists, if not, create the directory
-    def __checkInPathExist(self, clear=False):
-        self.__checkPathExist(self.in_path, clear)
-
-    # Check if the output folder exists, if not, create the directory
-    def __checkOutPathExist(self, clear=False):
-        self.__checkPathExist(self.out_path, clear)
-
-    # Check if the output folder exists, if not, create the directory
-    # if it exists, check if the folder is empty, if it is not empty, report an error
-    def __checkOutPathEmpty(self):
-        self.__checkOutPathExist()
-
-        if len(os.listdir(self.out_path)) != 0:
-            # ask user whether to delete the files in the folder
-            # if user choose to delete, delete all files and folders in the folder
-            if input("The output folder[%s] is not empty, do you want to delete all files? [y/n]" % self.out_path) == "y":
-                self.__cleanPath(self.out_path)
-            else:
-                raise Exception("Exit! Output folder[%s] is not empty." % self.out_path)
-
-    # Check Workspace (in/out folder) exist?
-    def checkWorkspaceExist(self):
-        self.__checkInPathExist()
-        self.__checkOutPathExist()
-
-    # Check if AFL tool: afl-fuzz exist?
-    def checkAFLExist(self):
-        afl_fuzz_path = os.path.join(self.afl_root, "afl-fuzz")
-        self.__checkFileExist(afl_fuzz_path)
-
+class AFLConfig:
+    @staticmethod
     # Check CPU frequency scaling governor
-    def checkCPUFreqScaling(self):
+    def checkCPUFreqScaling():
         if os.getenv("AFL_SKIP_CPUFREQ"):
             return
 
@@ -125,8 +58,9 @@ class FuzzEnv:
         print("Auto export AFL_SKIP_CPUFREQ=1 to skip CPU frequency check.")
         print("You can manually export the environment variable as well.")
 
+    @staticmethod
     # 检查系统是否配置为将核心转储通知发送到外部实用程序
-    def checkCoreDump(self):
+    def checkCoreDump():
         if os.getenv("AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES"):
             return
 
@@ -155,113 +89,262 @@ class FuzzEnv:
         else:
             print("This check is specific to Linux and is not supported on your system.")
 
-    # Init: Workspace (in/out folder) exist, out empty?
-    def initWorkspace(self):
-        self.checkWorkspaceExist()
-        self.__checkOutPathEmpty()
-        self.checkAFLExist()
-        # Check binary file exist?
-        self.__checkFileExist(self.binary)
-        # Check segment file exist?
-        self.__checkFileExist(self.seg_path)
-        # Check AFL run envrionment
-        self.checkCoreDump()
-        self.checkCPUFreqScaling()
+    @staticmethod
+    def getAFLRoot() -> str:
+        return os.environ.get('AFL_ROOT_PATH', '/usr/local/bin/')
 
-    # get segment info from file, only save segment address offset with main%
-    # args: prefix, default is "main", function name
-    # return a list, each element is a segment address offset
-    def getSegInfo(self, prefix="main") -> list:
-        # 检查文件是否存在
-        try:
-            with open(self.seg_path, 'r') as file:
-                content = file.read()
-        except FileNotFoundError:
-            self.seginfo.append("return")
-            return self.seginfo
+class Seginfo:
+    @staticmethod
+    def getFunctionAddrs(binary_path: str) -> dict:
+        FileTool.isExist(binary_path, True)
+        # 初始化 Angr 项目
+        proj = angr.Project(binary_path, auto_load_libs=False)
 
-        # 提取符合条件的数值
-        values = []
-        separators = [',', '\n', '=']
-        for separator in separators:
-            content = content.replace(separator, ' ')
-        words = content.split()
-        for word in words:
-            if word.startswith(prefix + "+0x"):
-                value_dec = int(word[len(prefix) + 3:], 16)
-                value = hex(value_dec)
-                values.append(value)
+        # 使用 CFGFast 分析二进制程序
+        cfg = proj.analyses.CFGFast()
+        cfg.normalize()
 
-        # 按照从小到大的顺序排列
-        values.sort()
+        # 获取所有函数的起始地址 和 返回地址
+        function_addrs = {}
+        for func in cfg.kb.functions.values():
+            func_start_addr = func.addr
+            if func.name != "main":
+                func_ret_addr = func.endpoints[0].addr
+            else:
+                func_ret_addr = 1
+            function_addrs[func.name] = (func_start_addr, func_ret_addr)
+            
+        return function_addrs
 
-        # 添加数值到结果列表
-        self.seginfo.extend(values)
+    @staticmethod
+    def getSegInfo(seg_path: str = None, binary_path: str=None) -> list:
+        if not os.path.exists(seg_path):
+            return ['return']
+        with open(seg_path, 'r') as file:
+            content = file.read()
 
-        # 在列表末尾插入"return"
-        self.seginfo.append("return")
+        function_addrs = Seginfo.getFunctionAddrs(binary_path)
+        equations = content.split(',')
+        seginfo = []
 
-        return self.seginfo
+        for eq in equations:
+            _, seg_name = eq.split('=')
+            seg_name = seg_name.strip()
+            if '+' in seg_name:
+                # 一般基本块地址 seg_name=func_name+offset
+                function_name, offset = seg_name.split('+')
+                offset = int(offset, 16)  # 转换16进制的偏移量为整数
+                seg_addr = function_addrs[function_name][0] + offset
+            elif r'%return' in seg_name:
+                # 返回地址 seg_name=func_name%return
+                function_name, _ = seg_name.split(r'%')
+                seg_addr = function_addrs[function_name][1]
+            else:
+                # 起始地址 seg_name=func_name
+                seg_addr = function_addrs[seg_name][0]
+            seginfo.append(hex(seg_addr))
 
-    # save old out seeds, move self.out_path to self.out_path_old/time
-    # time is the current time
-    def saveOldOutSeeds(self):
+        return seginfo
+
+
+class FileTool:
+    @staticmethod
+    def isExist(path: str, raise_exception=False):
+        """
+        Check if the specified path/file exists.
+
+        Args:
+            path (str): The path/file to check.
+
+        Returns:
+            bool: True if the path/file exists, False otherwise.
+        """
+        state = os.path.exists(path)
+        if not state and raise_exception:
+            raise FileNotFoundError(f"File or Path [{path}] does not exist.")
+        return state
+
+    @staticmethod
+    def cleanPath(path: str, raise_exception=False):
+        """
+        Removes all files and directories within the specified path.
+
+        Args:
+            path (str): The path to clean.
+
+        Returns:
+            None
+        """
+        if FileTool.isExist(path, raise_exception):
+            for root, dirs, files in os.walk(path, topdown=False):
+                for name in files:
+                    os.remove(os.path.join(root, name))
+                for name in dirs:
+                    os.rmdir(os.path.join(root, name))
+
+    @staticmethod
+    def mkdirPath(path: str, clean=False):
+        """
+        Create a directory at the specified path if it doesn't already exist.
+
+        Args:
+            path (str): The path of the directory to be created.
+
+        Returns:
+            None
+        """
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        if clean:
+            FileTool.cleanPath(path)
+
+
+class CheckEnv:
+    @staticmethod
+    def checkOutPathEmpty(out_path: str):
+        """
+        Checks if the output path is empty and prompts the user to delete its contents if not.
+
+        Args:
+            out_path (str): The path to the output folder.
+
+        Raises:
+            Exception: If the user chooses not to delete the files in the folder.
+
+        """
+        FileTool.mkdirPath(out_path)
+
+        if len(os.listdir(out_path)) != 0:
+            # ask user whether to delete the files in the folder
+            # if user choose to delete, delete all files and folders in the folder
+            if input("The output folder[%s] is not empty, do you want to delete all files? [y/n]" % out_path) == "y":
+                FileTool.cleanPath(out_path)
+            else:
+                raise Exception("Exit! Output folder[%s] is not empty." % out_path)
+
+    @staticmethod
+    def checkWorkspaceExist(in_path: str, out_path: str):
+        """
+        Check if the input and output directories exist.
+
+        Args:
+            in_path (str): The path of the input directory.
+            out_path (str): The path of the output directory.
+
+        Returns:
+            None
+        """
+        FileTool.mkdirPath(in_path)
+        CheckEnv.checkOutPathEmpty(out_path)
+
+    @staticmethod
+    def checkAFLExist(afl_root: str):
+        """
+        Check if the AFL tool is installed.
+
+        Args:
+            afl_root (str): The path of the AFL tool.
+
+        Returns:
+            None
+        """
+        afl_fuzz_path = os.path.join(afl_root, "afl-fuzz")
+        FileTool.isExist(afl_fuzz_path, True)
+
+    @staticmethod
+    def checkBinaryExist(binary: str):
+        """
+        Check if the binary file exists.
+
+        Args:
+            binary (str): The path of the binary file.
+
+        Returns:
+            None
+        """
+        FileTool.isExist(binary, True)
+
+    @staticmethod
+    def checkWorkspace(in_path: str, out_path: str, binary: str):
+        """
+        Check the input and output directories, the AFL tool, and the binary file.
+
+        Args:
+            in_path (str): The path of the input directory.
+            out_path (str): The path of the output directory.
+            afl_root (str): The path of the AFL tool.
+            binary (str): The path of the binary file.
+
+        Returns:
+            None
+        """
+        AFLConfig.checkCoreDump()
+        AFLConfig.checkCPUFreqScaling()
+        CheckEnv.checkWorkspaceExist(in_path, out_path)
+        afl_root = AFLConfig.getAFLRoot()
+        CheckEnv.checkAFLExist(afl_root)
+        CheckEnv.checkBinaryExist(binary)
+
+
+class CaseTool:
+    @staticmethod
+    def saveOldOutSeeds(out_path: str):
         # 获取当前时间
-        time = datetime.now().strftime("%Y%m%d%H%M%S")
+        time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
         # 创建old文件夹
-        self.old_out_path = self.out_path + "_old"
-        self.__checkPathExist(self.old_out_path)
+        old_out_path = out_path + "_old"
+        FileTool.mkdirPath(old_out_path)
 
         # 保存本次输出的文件夹
-        thisold = self.old_out_path + "/" + time
-        mv2old = f"mv {self.out_path} {thisold}"
+        thisold = old_out_path + "/" + time
+        mv2old = f"mv {out_path} {thisold}"
         process = subprocess.Popen(['bash', '-c', mv2old], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         # 等待命令结束
         process.wait()
-        # os.rename(self.out_path, self.out_path + "_old/" + time)
 
         # 创建新的输出文件夹
-        self.__checkOutPathExist(True)
+        FileTool.mkdirPath(out_path, True)
 
+    @staticmethod
     # copy only files, not subfolders of out_path/queue/* to in_path, rename file with prefix(segment address offset)
-    def mergeSeeds(self, prefix=""):
-        queue_path = self.out_path + "/queue"
+    def mergeSeeds(in_path: str, out_path: str, prefix=""):
+        queue_path = out_path + "/queue"
         if os.path.exists(queue_path):
             # 获取out_path/queue/下的所有文件，但不包括子文件夹及其内部的文件
             files = [f for f in os.listdir(queue_path) if os.path.isfile(os.path.join(queue_path, f))]
-
-            self.__checkInPathExist(True)
-
+            FileTool.mkdirPath(in_path, True)
             # 复制生成的测试用例到输入文件夹
             for i, file_name in enumerate(files, 1):
                 # 构造新的文件名，例如1.in、2.in、3.in等
                 new_file_name = f"{i}.in"
 
                 src = queue_path + "/" + file_name
-                dst = self.in_path + "/" + prefix + new_file_name
+                dst = in_path + "/" + prefix + new_file_name
                 shutil.copyfile(src, dst)
 
             # 保存本次输出seeds
-            self.saveOldOutSeeds()
+            CaseTool.saveOldOutSeeds(out_path)
 
-    def savecases(self) -> str:
+    @staticmethod
+    def saveCases(in_path: str, out_path: str) -> str:
         # check input path exist?
-        self.__checkInPathExist()
+        FileTool.isExist(in_path, True)
 
-        cases_file = self.binary + datetime.now().strftime("%Y%m%d%H%M%S")
-        cases_file_path = os.path.join(self.out_path, f"{cases_file}.txt")
+        cases_file = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        cases_file_path = os.path.join(out_path, f"{cases_file}.txt")
 
         # copy all .in files in in_path to cases_file
         aggregated_content = ""
-        for filename in os.listdir(self.in_path):
+        for filename in os.listdir(in_path):
             if filename.endswith(".in"):
-                with open(os.path.join(self.in_path, filename), "r") as file:
+                with open(os.path.join(in_path, filename), "r") as file:
                     aggregated_content += file.read()
 
         # 将聚合后的内容写入到输出文件中
         with open(cases_file_path, "a") as output_file:
             output_file.write(aggregated_content)
-        
+
         return cases_file_path

@@ -101,11 +101,15 @@ double select_kth(double arr[], unsigned long k, unsigned long n);
 int main(int argc, char *argv[]) {
     int year = 0, month = 1, day = 1, total_days = 0;
     // Check if there are enough command line arguments
-    if (argc >= 4) {
+    if (argc >= 2) {
         // Convert command line arguments to integers
         year = atoi(argv[1]);
-        month = atoi(argv[2]);
-        day = atoi(argv[3]);
+        if (argc >= 3) {
+            month = atoi(argv[2]);
+            if (argc >= 4) {
+                day = atoi(argv[3]);
+            }
+        }
     } else {
 // If not enough command line arguments, read from stdin
 #ifdef POUT

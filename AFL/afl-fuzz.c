@@ -336,7 +336,7 @@ enum {
 #define SIGOFFSET 1024
 static void append_debug(const char* format, ...)
 {
-  if (getenv("DEBUG_MODE")) {
+  if (getenv("DEBUG_FILE")) {
     char* debug_file = getenv("DEBUG_FILE");
     // 打开文件以追加写入
     FILE* file = fopen(debug_file, "a");
@@ -413,7 +413,6 @@ static void setup_segment_addr(const char* filePath, const u64 segment_offset) {
     append_debug("main_addr: %lu, segment_offset: %lu\n", main_addr, segment_offset);
     address = main_addr + segment_offset;
   }
-
   write2AFLSegmentFile(address);
 }
 /* Get unix time in milliseconds */
@@ -7914,6 +7913,7 @@ int main(int argc, char** argv) {
         setenv("SEGMENT_OFFSET", optarg, 1);
         /* 设置Segment offset, AFL 自动停止 */
         setenv("AFL_EXIT_WHEN_DONE", "1", 1);
+        write2AFLSegmentFile(segment_offset);
         break;
 
       case 'S': 
@@ -8147,7 +8147,7 @@ int main(int argc, char** argv) {
   // 检查目标程序，看找不找得到、在不在 /tmp 等。
   check_binary(argv[optind]);
   /* 获取目标程序的main函数起始地址和分段偏移 */
-  setup_segment_addr(argv[optind], segment_offset);
+  // setup_segment_addr(argv[optind], segment_offset);
 
   start_time = get_cur_time();
 
