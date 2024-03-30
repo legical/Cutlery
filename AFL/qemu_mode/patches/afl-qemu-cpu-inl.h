@@ -308,9 +308,6 @@ static inline void afl_maybe_log(abi_ulong cur_loc, CPUState *cpu) {
 
   /* 如果分段偏移量不为0，证明设置了偏移，检测cur_loc是否运行到main start + offset */  
   if (afl_exit_addr && (int)afl_exit_addr == (int)cur_local) {
-    // main return point
-    if (1 == (int)afl_exit_addr) return;
-    
     append_debug("Child [%d] reach seg. cur_local:%u, cur:%u, main+offset:%u\n", getpid(), cur_local, cur_loc, afl_exit_addr);
     CPUClass *cc = CPU_GET_CLASS(cpu);
     cc->cpu_exec_exit(cpu);

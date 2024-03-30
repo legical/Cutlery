@@ -7,6 +7,26 @@ import angr
 
 
 class AFLConfig:
+    # 设置环境的命令提示
+    help = """
+    Execute the following commands to set up AFL environment:
+
+    1. Get superuser privileges:
+       sudo su
+
+    2. Configure the core dump pattern to eliminate error reporting:
+       echo core > /proc/sys/kernel/core_pattern
+
+    3. Switch to the CPU device directory:
+       cd /sys/devices/system/cpu
+
+    4. Set the frequency adjustment policy for all CPUs to 'performance' mode:
+       echo performance | tee cpu*/cpufreq/scaling_governor
+    
+    5. Exit superuser privileges:
+       exit
+    """
+
     @staticmethod
     # Check CPU frequency scaling governor
     def checkCPUFreqScaling():
@@ -90,13 +110,44 @@ class AFLConfig:
             print("This check is specific to Linux and is not supported on your system.")
 
     @staticmethod
+    def initEnvPrompt(prompt: str = help):
+        lines = prompt.strip().split('\n')
+        max_width = max(len(line) for line in lines)+5
+        border = '+' + '-' * (max_width + 2) + '+'
+
+        box_str = border + '\n'
+        box_str += '| ' + 'AFL Startup Setup Tip'.center(max_width) + ' |\n'
+        box_str += border + '\n'
+
+        # 按行分割命令字符串，并添加到美化后的字符串中
+        for line in lines:
+            box_str += '| ' + line.strip().ljust(max_width) + ' |\n'
+
+        box_str += border + '\n'
+        print(box_str)
+
+    @staticmethod
+    def checkAFLInitEnv():
+        AFLConfig.initEnvPrompt(AFLConfig.help)
+        # 询问用户是否已经按照提示输入了命令
+        user_input = input(
+            "Have you entered the command as prompted above? Please enter 'y' or 'Y' for yes, any other entry will be considered no: ")
+
+        # 判断用户输入并作出相应处理
+        if user_input.lower() != 'y':
+            raise RuntimeError("Error: Please follow the prompts to execute the AFL initialization command correctly.")
+
+        AFLConfig.checkCoreDump()
+        AFLConfig.checkCPUFreqScaling()
+
+    @staticmethod
     def getAFLRoot() -> str:
         return os.environ.get('AFL_ROOT_PATH', '/usr/local/bin/')
 
+
 class Seginfo:
     @staticmethod
-    def getFunctionAddrs(binary_path: str) -> dict:
-        FileTool.isExist(binary_path, True)
+    def genCFG(binary_path: str):
         # 初始化 Angr 项目
         proj = angr.Project(binary_path, auto_load_libs=False)
 
@@ -104,26 +155,34 @@ class Seginfo:
         cfg = proj.analyses.CFGFast()
         cfg.normalize()
 
-        # 获取所有函数的起始地址 和 返回地址
-        function_addrs = {}
+        return cfg
+
+    @staticmethod
+    def getFuncRetAddr(cfg, func_name: str) -> int:
+        # 获取函数对象
+        func = cfg.kb.functions.function(name=func_name)
+        # 返回函数的返回地址
+        ret_addr = func.endpoints[0].addr if func.endpoints else None
+        return ret_addr
+
+    @staticmethod
+    def getFuncStartAddrs(cfg) -> dict:
+        function_addrs = dict()
         for func in cfg.kb.functions.values():
             func_start_addr = func.addr
-            if func.name != "main":
-                func_ret_addr = func.endpoints[0].addr
-            else:
-                func_ret_addr = 1
-            function_addrs[func.name] = (func_start_addr, func_ret_addr)
-            
+            function_addrs[func.name] = func_start_addr
+
         return function_addrs
 
     @staticmethod
-    def getSegInfo(seg_path: str = None, binary_path: str=None) -> list:
+    def getSegInfo(seg_path: str = None, binary_path: str = None) -> list:
         if not os.path.exists(seg_path):
             return ['return']
         with open(seg_path, 'r') as file:
             content = file.read()
 
-        function_addrs = Seginfo.getFunctionAddrs(binary_path)
+        cfg = Seginfo.genCFG(binary_path)
+        function_addrs = Seginfo.getFuncStartAddrs(cfg)
         equations = content.split(',')
         seginfo = []
 
@@ -134,15 +193,17 @@ class Seginfo:
                 # 一般基本块地址 seg_name=func_name+offset
                 function_name, offset = seg_name.split('+')
                 offset = int(offset, 16)  # 转换16进制的偏移量为整数
-                seg_addr = function_addrs[function_name][0] + offset
+                seg_addr = function_addrs[function_name] + offset
             elif r'%return' in seg_name:
                 # 返回地址 seg_name=func_name%return
                 function_name, _ = seg_name.split(r'%')
-                seg_addr = function_addrs[function_name][1]
+                seg_addr = Seginfo.getFuncRetAddr(cfg, function_name) if function_name != 'main' else 0
             else:
-                # 起始地址 seg_name=func_name
-                seg_addr = function_addrs[seg_name][0]
-            seginfo.append(hex(seg_addr))
+                # 起始地址 seg_name=func_name，去除main__0=main
+                seg_addr = function_addrs[seg_name] if seg_name != 'main' else None
+
+            if seg_addr is not None:
+                seginfo.append(hex(seg_addr))
 
         return seginfo
 
@@ -201,6 +262,19 @@ class FileTool:
 
 
 class CheckEnv:
+    @staticmethod
+    def help():
+        print("\n[-] Hmm, your system is configured to send core dump notifications to an\n"
+              "    external utility. This will cause issues: there will be an extended delay\n"
+              "    between stumbling upon a crash and having this information relayed to the\n"
+              "    fuzzer via the standard waitpid() API.\n\n"
+              "    To avoid having crashes misinterpreted as timeouts, please log in as root\n"
+              "    and temporarily modify /proc/sys/kernel/core_pattern, like so:\n\n"
+              "    export AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1\n\n"
+              "    With this environment variable, AFL will not display warning messages and may miss crashes. You can also:\n"
+              "    sudo su\n"
+              "    echo core >/proc/sys/kernel/core_pattern\n")
+
     @staticmethod
     def checkOutPathEmpty(out_path: str):
         """
@@ -279,8 +353,7 @@ class CheckEnv:
         Returns:
             None
         """
-        AFLConfig.checkCoreDump()
-        AFLConfig.checkCPUFreqScaling()
+        AFLConfig.checkAFLInitEnv()
         CheckEnv.checkWorkspaceExist(in_path, out_path)
         afl_root = AFLConfig.getAFLRoot()
         CheckEnv.checkAFLExist(afl_root)

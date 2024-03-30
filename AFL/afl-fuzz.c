@@ -7913,7 +7913,7 @@ int main(int argc, char** argv) {
         setenv("SEGMENT_OFFSET", optarg, 1);
         /* 设置Segment offset, AFL 自动停止 */
         setenv("AFL_EXIT_WHEN_DONE", "1", 1);
-        write2AFLSegmentFile(segment_offset);
+        if(0 != segment_offset) write2AFLSegmentFile(segment_offset);
         break;
 
       case 'S': 
