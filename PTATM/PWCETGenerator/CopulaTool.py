@@ -39,7 +39,7 @@ class DataProcess:
             for seg_name, seg_cost in data[DataProcess.KEY_EXTRACT][extract_func].items():
                 if seg_name != DataProcess.KEY_EXCLUDE:
                     time_values = seg_cost[DataProcess.KEY_NORMCOST][DataProcess.KEY_TIME]
-                    extracted_data.setdefault(seg_name, list()).append(time_values)
+                    extracted_data.setdefault(seg_name, list()).extend(time_values)
 
         return DataProcess.makeValid(extracted_data)
 
@@ -99,7 +99,7 @@ class DataProcess:
                     f"Raw data number[{len(raw_data)}] not equal to inverse_simulate_data dimension[{len(inverse_simulate_data)}].")
 
             for key, inverse_values in zip(raw_data.keys(), inverse_simulate_data):
-                raw_data[key].append(inverse_values)
+                raw_data[key].extend(inverse_values)
 
             return raw_data
 
@@ -107,7 +107,7 @@ class DataProcess:
     def combine(raw_data: OrderedDict) -> list:
         """将相同下标的值相加并保存到一个列表中，作为任务执行时间"""
         min_length = min(len(value) for value in raw_data.values())
-        task_costs = []
+        task_costs = list()
         for idx in range(min_length):
             task_cost = sum(raw_data[key][idx] for key in raw_data if idx < len(raw_data[key]))
             task_costs.append(task_cost)
@@ -163,7 +163,7 @@ class CopulaModel(EVTTool.PWCETInterface):
             data (np.ndarray): d*n matrix. each row is a random variable observations.
 
         Returns:
-            list: d*n matrix. each row is a origin random variable data.
+            list(list(float)): d*n matrix. each row is a origin random variable data.
         """
         if self.raw_models is None or data is None:
             raise ValueError("Raw models or data is None.")
