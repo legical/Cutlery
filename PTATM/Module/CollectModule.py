@@ -20,6 +20,7 @@ INPUTS = 'inputs'
 CMD = 'cmd'
 RUN_CONTENDER = False
 
+
 def gentrace(binary: str, command: str, uprobes: list, clock: str):
     from SegmentInfoCollector.Collector import TraceCollector
     # Del all uprobes.
@@ -41,8 +42,10 @@ def gentrace(binary: str, command: str, uprobes: list, clock: str):
         TraceCollector.delprobe(TraceCollector.PROBE_ALL)
     return info
 
+
 def compete(contender: dict, core: int):
     os.setpgid(0, 0)
+
     def handler(x, y):
         os.killpg(os.getpgid(0), signal.SIGKILL)
     signal.signal(signal.SIGTERM, handler)
@@ -51,6 +54,7 @@ def compete(contender: dict, core: int):
     while True:
         contender_id = random.randint(0, nr_contender-1)
         exec(gencmd(contenders[contender_id]))
+
 
 def checkconf(conf: dict):
     target = conf[TARGET]
@@ -88,6 +92,16 @@ def checkconf(conf: dict):
             if not isinstance(task[CMD], str):
                 raise Exception('Invalid cmd[%s].' % task[CMD])
 
+
+def randomInput(repeat: int, inputs: list) -> list:
+    randoms = list()
+    while len(randoms) < repeat:
+        random_list = list(range(len(inputs)))
+        random.shuffle(random_list)
+        randoms.extend(random_list)
+    return randoms
+
+
 def service(args):
     if not PTATM.issudo():
         raise Exception('You should run as a sudoer.')
@@ -116,17 +130,19 @@ def service(args):
             cmdpat = 'taskset -c %%d %s %%s' % binary
             # Change working directory for collect.
             os.chdir(taskdir)
-            for r in range(args.repeat):
-                for in_vec in inputs:
-                    core = target_coreset[random.randint(0, len(target_coreset)-1)]
-                    command = cmdpat % (core, in_vec)
-                    if args.verbose:
-                        PTATM.info('Collect for command[%s] at %d time.' % (command, r+1))
-                    # Randomize buddy.
-                    exec(ControlModule.RANDOMIZER)
-                    traceinfo = gentrace(binary, command, uprobes, args.clock)
-                    outfile.write('\n[%s] [%s]\n' % (command, args.clock) + traceinfo)
-                    outfile.flush()
+            # random input
+            random_idx = randomInput(args.repeat, inputs)
+            for i, r_idx in enumerate(random_idx, 1):
+                in_vec = inputs[r_idx]
+                core = target_coreset[random.randint(0, len(target_coreset)-1)]
+                command = cmdpat % (core, in_vec)
+                if args.verbose:
+                    PTATM.info(f'[{i}/{len(random_idx)}]\tCollect for command [{command}].')
+                # Randomize buddy.
+                exec(ControlModule.RANDOMIZER)
+                traceinfo = gentrace(binary, command, uprobes, args.clock)
+                outfile.write('\n[%s] [%s]\n' % (command, args.clock) + traceinfo)
+                outfile.flush()
     except Exception as error:
         raise error
     finally:
