@@ -197,11 +197,11 @@ class KMeansCluster:
             clusters[closest_centroid_idx].append(point)
         return clusters
 
-    def update_centers(self, clusters):
+    def update_centers(self, clusters) -> list:
         """
         更新聚类中心
         """
-        centers = []
+        centers = list()
         for cluster in clusters:
             if cluster:
                 new_centroid = np.mean(cluster, axis=0)
