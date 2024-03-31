@@ -405,6 +405,7 @@ class CaseTool:
     def saveCases(in_path: str, out_path: str) -> str:
         # check input path exist?
         FileTool.isExist(in_path, True)
+        FileTool.mkdirPath(out_path)
 
         cases_file = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         cases_file_path = os.path.join(out_path, f"{cases_file}.txt")
@@ -419,5 +420,7 @@ class CaseTool:
         # 将聚合后的内容写入到输出文件中
         with open(cases_file_path, "a") as output_file:
             output_file.write(aggregated_content)
-
+        output_file.flush()
+        output_file.close()
+        
         return cases_file_path
