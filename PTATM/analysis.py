@@ -291,7 +291,7 @@ if __name__ == "__main__":
     copula.add_argument('-f', '--function', metavar='', default='main',
                        help='target functions to generate, default is main')
     copula.add_argument('-n', '--simulate-number', metavar='',type=int, default=50000,
-                       help='Number of Monte Carlo simulations, default is 50w')
+                       help='Number of Monte Carlo simulations, default is 5w')
     copula.add_argument('-t', '--evt-type', choices=list(CopulaModule.PWCET_DISTRIBUTIONS.keys()), default='GPD',
                        help='choose type of EVT family(GEV or GPD), default is GPD')    
     copula.add_argument('-p', '--prob', metavar='', type=float, action='extend', default=argparse.SUPPRESS, nargs='+',
