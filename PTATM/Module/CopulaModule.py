@@ -14,35 +14,35 @@ PWCET_DISTRIBUTIONS = {
 
 
 def margin_distributions(args, raw_data: OrderedDict):
+    if args.verbose:
+        PTATM.info(f'Fit {len(raw_data.keys())} segment: {raw_data.keys()}\n')
     # fit spd distribution
-    models, costs = list(), list()
-    try:
-        for seg_name, seg_cost in raw_data.items():
-            # fit each data
-            distribution_gen = EVTTool.MixedDistributionGenerator()
-            spd_model = distribution_gen.fit(seg_cost)
-            models.append(spd_model)
-            costs.append(seg_cost)
-            if args.verbose:
-                PTATM.info(f'Fit segment[{seg_name}] with {spd_model.name()} succeed.')
+    models, costs, ECDF_value = list(), list(), 0
+    for seg_name, seg_cost in raw_data.items():
+        # fit each data
+        distribution_gen = EVTTool.MixedDistributionGenerator(args.evt_type, fix_c=0)
+        spd_model = distribution_gen.fit(seg_cost)
+        if spd_model.onlyECDF():
+            ECDF_value += max(seg_cost)
+        models.append(spd_model)
+        costs.append(seg_cost)
+        if args.verbose:
+            PTATM.info(f'Fit segment [{seg_name}] done.\n{spd_model.expression()}\n')
 
-    except Exception as e:
-        PTATM.error(f'Build distribution failed with err_msg[{e}].')
-        return models, costs
-    return models, costs
+    return models, costs, ECDF_value
 
 
-def simulate_and_merge(args, raw_data: OrderedDict, copula_model: CopulaTool.CopulaModel):
+def simulate_and_merge(args, raw_data: OrderedDict, copula_model: CopulaTool.CopulaModel, ECDF_value: int = 0):
     # simulate
     if args.verbose:
-        PTATM.info(f'Try to simulate {args.simulate_times} observations.')
-    sim_values = copula_model.simulate(args.simulate_times)
+        PTATM.info(f'Try to simulate {args.simulate_number} observations.')
+    sim_values = copula_model.simulate(args.simulate_number)
     # inverse CDF
     inverse_values = copula_model.inverse_transform(sim_values)
     # merge data
     task_merge_data = CopulaTool.DataProcess.merge_simulate_obsdata(raw_data, inverse_values)
     # sum as task excution time list
-    task_costs = CopulaTool.DataProcess.combine(task_merge_data)
+    task_costs = CopulaTool.DataProcess.combine(task_merge_data, ECDF_value)
     return task_costs
 
 # TODO: 类信封方法. 难点：其他分布类型怎么simulate？
@@ -52,7 +52,7 @@ def simulate_and_merge(args, raw_data: OrderedDict, copula_model: CopulaTool.Cop
 
 
 def service(args):
-    if not hasattr(args, 'function'):
+    if not hasattr(args, 'function') or args.function is None:
         args.function = 'main'
     if not hasattr(args, 'prob'):
         args.prob = [10**-x for x in range(1, 10)]
@@ -63,37 +63,44 @@ def service(args):
 
     # Build copula object.
     if args.verbose:
-        PTATM.info('Parsing data from {args.input}.')
+        PTATM.info(f'Parsing data from {args.input} with function[{args.function}].')
     raw_data = CopulaTool.DataProcess.json2data(args.input, args.function)
 
     # fit spd distribution
     if args.verbose:
-        PTATM.info(f'Fitting distributions for function[{args.function}].')
-    models, costs = margin_distributions(args, raw_data)
+        PTATM.info(f'Fitting distributions for function [{args.function}].')
+    models, costs, ECDF_value = margin_distributions(args, raw_data)
 
     # fit copula
     if args.verbose:
-        PTATM.info(f'Fitting copula model for function[{args.function}].')
+        PTATM.info(f'Fitting copula model for function [{args.function}].')
     cop_gen = CopulaTool.CopulaGenerator(models, costs)
+    if args.verbose:
+        PTATM.info('Transfer all data to pseudo-observations succeed.')
     cop_model = cop_gen.fit(selected_structure='DVineStructure')
     if args.verbose:
         PTATM.info(cop_model.expression())
 
-    evt_distribution = None
+    task_costs = None
     # 尝试3次pWCET拟合
     for i in range(3):
         task_costs = simulate_and_merge(args, raw_data, cop_model)
-        evt_distribution = PWCET_DISTRIBUTIONS[args.evt_type]()
-        if evt_distribution.passed_kpss(task_costs) and evt_distribution.passed_bds(task_costs):
+        if EVTTool.EVT.passed_kpss(task_costs) and EVTTool.EVT.passed_bds(task_costs):
             # 平稳性检验通过
             break
         else:
             PTATM.warning(f'pWCET fitting failed for {i+1} times.')
 
-    if args.verbose:
-        PTATM.info(f'Fit [{args.function}] pWCET with evt-type[{args.evt_type}].')
     # 若三次拟合都不成功，则使用最后一次拟合结果
-    pwcet_model = evt_distribution.fit(task_costs)
+    evt_types = ['GPD', 'GEV']
+    for evt_type in evt_types:
+        evt_distribution = PWCET_DISTRIBUTIONS[evt_type](fix_c=0)
+        pwcet_model = evt_distribution.fit(task_costs)
+        if pwcet_model is not None:
+            if args.verbose:
+                PTATM.info(f'Fit [{args.function}] pWCET with evt-type [{evt_type}].')
+            break
+
     if pwcet_model is not None:
         if args.verbose:
             PTATM.info(f'Generate [{args.function}] result into [{args.output}].')
@@ -103,7 +110,7 @@ def service(args):
             output.write('\n' + headline)
             # gen pWCET
             pwcet = [round(pwcet_model.isf(p), 4) for p in args.prob]
-            body = reduce(lambda x, y: str(x)+','+str(y), args.function + pwcet)
+            body = f"{args.function},{','.join(map(str, pwcet))}"
             output.write('\n' + body)
 
     if args.verbose:

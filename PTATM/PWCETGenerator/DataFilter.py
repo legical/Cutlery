@@ -166,23 +166,25 @@ class KMeansCluster:
         self.points = CoordinatePoints(data)
         self.k = k
 
-    def choose_center(self):
+    def choose_center(self) -> list:
         """选择初始中心点
 
         Returns:
             list(Tuple(x,y)): k center point
         """
+        centers = list()
         if self.k > self.points.get_number():
             raise ValueError('k must less than data length')
-        if self.k == 2:
-            return [self.points.get_point(idx=0), self.points.get_point(idx=-1)]
-        elif self.k == 3:
-            return [self.points.get_point(idx=0), self.points.get_point(idx=int(self.points.get_number()/2)), self.points.get_point(idx=-1)]
-        else:
+        if self.k >= 2:
+            centers = [self.points.get_point(idx=0), self.points.get_point(idx=-1)]
+        if self.k >= 3:
+            centers.append(self.points.get_point(idx=int(self.points.get_number()/2)))
+        if self.k > 3:
             # random choose k center point
-            centers_idx = np.random.choice(self.points.get_number(), self.k, replace=False)
-            centers = [self.points.get_point(idx=i) for i in centers_idx]
-            return centers
+            centers_idx = np.random.choice(self.points.get_number(), self.k-3, replace=False)
+            more_centers = [self.points.get_point(idx=i) for i in centers_idx]
+            centers.extend(more_centers)
+        return list(set(centers))
 
     def assign_to_clusters(self, centers):
         """将数据点分配到最近的聚类中心
@@ -208,7 +210,7 @@ class KMeansCluster:
                 centers.append(new_centroid)
         return centers
 
-    def cluster(self, tolerance: float = 0.1, max_iter: int = 50):
+    def cluster(self, tolerance: float = 0.1, max_iter: int = 5):
         """K聚类算法
 
         Args:
@@ -373,7 +375,7 @@ class PoT:
         """
         if method is None:
             method = 'cluster'
-            
+
         if method == 'cluster':
             return self.cluster(arg)
         elif method == 'maxn':

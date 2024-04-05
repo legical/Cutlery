@@ -8,7 +8,7 @@ def service(args):
     seg_func_names = cut_builder.findCutFunctionFromMain()
     if len(seg_func_names) != 0:
         if args.verbose:
-            PTATM.info(f'Find cut-node function list: {seg_func_names}.')
+            PTATM.info(f'Find {len(seg_func_names)} cut-node functions: {seg_func_names}.')
             PTATM.info(f'Save cut-function segment result into ➜  {args.output}.')
             PTATM.info('Done.')
     elif args.verbose:

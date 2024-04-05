@@ -8,13 +8,13 @@ import multiprocessing
 root = PTATM.root
 # MACRO for gencarsim.
 NOP = 'nop;'
-SIMSRC = root + '/L3Contention/CARSimulator.c'
+SIMSRC = root + r'/L3Contention/CARSimulator.c'
 SIMCMD = 'gcc -DNOPSTR=\'"%s"\' -O1 -o %s %s'
 # MACRO for genwcar.
-RANDOMIZER = root + '/L3Contention/RandomizeBuddy'
-PROFILER = root + '/L3Contention/profiler'
-TMPFILE = '/tmp/PTATM-wcar.json'
-TARGETID = 'target'
+RANDOMIZER = root + r'/L3Contention/RandomizeBuddy'
+PROFILER = root + r'/L3Contention/profiler'
+TMPFILE = r'/tmp/PTATM-wcar.json'
+TARGETID = r'target'
 MODE = 'SAMPLE_ALL'
 INS = 'INSTRUCTIONS'
 LLC_ACC = 'LLC_REFERENCES'

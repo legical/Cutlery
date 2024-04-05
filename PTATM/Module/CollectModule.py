@@ -105,6 +105,8 @@ def randomInput(repeat: int, inputs: list) -> list:
 def service(args):
     if not PTATM.issudo():
         raise Exception('You should run as a sudoer.')
+    if not hasattr(args, 'output'):
+        raise Exception('You should specify an output file path.')
     taskjson = json.loads(open(args.taskconf, 'r').read())
     checkconf(taskjson)
     target, contender = taskjson[TARGET], taskjson[CONTENDER]
@@ -133,13 +135,14 @@ def service(args):
             # random input
             random_idx = randomInput(args.repeat, inputs)
             for i, r_idx in enumerate(random_idx, 1):
-                in_vec = inputs[r_idx]
+                # 清理空字节和其他非法字符
+                in_vec = inputs[r_idx].replace("\x00", "")
                 core = target_coreset[random.randint(0, len(target_coreset)-1)]
                 command = cmdpat % (core, in_vec)
                 if args.verbose:
                     PTATM.info(f'[{i}/{len(random_idx)}]\tCollect for command [{command}].')
                 # Randomize buddy.
-                exec(ControlModule.RANDOMIZER)
+                PTATM.exec(ControlModule.RANDOMIZER)
                 traceinfo = gentrace(binary, command, uprobes, args.clock)
                 outfile.write('\n[%s] [%s]\n' % (command, args.clock) + traceinfo)
                 outfile.flush()
@@ -155,4 +158,22 @@ def service(args):
         # Close output.
         outfile.close()
     if args.verbose:
+        PTATM.info('Done.')
+
+
+def genjson(args):
+    # check probefile is exist
+    if not os.path.exists(args.probe):
+        raise FileNotFoundError(f"File '{args.probe}' not found.")
+    # check inputfile is exist
+    if not os.path.exists(args.input):
+        raise FileNotFoundError(f"File '{args.input}' not found.")
+    
+    from SegmentInfoCollector.InputTool import InputJson
+    if args.verbose:
+        PTATM.info('Generate collect input json file.')
+    inputjson = InputJson(args.binary, args.probe, args.input)
+    collect_json = inputjson.genJson(args.output)
+    if args.verbose:
+        PTATM.info(f'Save json file to : [{collect_json}].')
         PTATM.info('Done.')

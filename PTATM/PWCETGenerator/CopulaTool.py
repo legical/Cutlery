@@ -40,6 +40,10 @@ class DataProcess:
                 if seg_name != DataProcess.KEY_EXCLUDE:
                     time_values = seg_cost[DataProcess.KEY_NORMCOST][DataProcess.KEY_TIME]
                     extracted_data.setdefault(seg_name, list()).extend(time_values)
+                    # print(f"Func[{extract_func}] extracted {seg_name} with {len(time_values)} values.")
+        
+        if len(extracted_data) == 0:
+            raise ValueError(f"Function[{extract_func}] not found in seginfo json file.")
 
         return DataProcess.makeValid(extracted_data)
 
@@ -104,12 +108,13 @@ class DataProcess:
             return raw_data
 
     @staticmethod
-    def combine(raw_data: OrderedDict) -> list:
+    def combine(raw_data: OrderedDict, ECDF_value:int=0) -> list:
         """将相同下标的值相加并保存到一个列表中，作为任务执行时间"""
         min_length = min(len(value) for value in raw_data.values())
         task_costs = list()
         for idx in range(min_length):
             task_cost = sum(raw_data[key][idx] for key in raw_data if idx < len(raw_data[key]))
+            task_cost += ECDF_value
             task_costs.append(task_cost)
         return task_costs
 
@@ -214,7 +219,8 @@ class CopulaGenerator:
             self.uniform_data = pv.to_pseudo_obs(np.array(raw_data).T)
         else:
             pseudo_obs_data = list()
-            for model, data in zip(models, raw_data):
+            for idx, (model, data) in enumerate(zip(models, raw_data), 1):
+                print(f"pseudo-observations [{idx}/{len(models)}] with model[{model.getname()}].")
                 pseudo_obs_data.append(self.pseudo_obs(model, data))
 
             self.uniform_data = np.array(pseudo_obs_data).T
@@ -268,9 +274,10 @@ class CopulaGenerator:
     # Default fit D-vine copula
     def fit(self, **kwargs):
         selected_structure = kwargs.get('selected_structure', 'DVineStructure')
-        structure = self.make_structure(**kwargs)
-        cop = pv.Vinecop(data=self.uniform_data, structure=structure)
-        return self.gen(cop, selected_structure)
+        cop_structure = self.make_structure(**kwargs)
+        # copula_model = pv.Vinecop(data=self.uniform_data)
+        copula_model = pv.Vinecop(data=self.uniform_data, structure=cop_structure)
+        return self.gen(copula_model, selected_structure)
 
     def gen(self, copula, name: str = "[CopulaModel]"):
         return CopulaModel(copula, self.models, name)

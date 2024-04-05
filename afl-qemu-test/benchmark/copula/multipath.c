@@ -1,4 +1,4 @@
-/* debug complier : gcc - o multipath multipath.c - DPOUT */
+/* debug complier : gcc -o multi multipath.c -DPOUT */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +11,29 @@
         (b) = temp;                                                            \
     }
 
+#define MIN 20
+
+typedef struct {
+    int x, y;
+} Point;
+
+typedef struct {
+    Point *points;
+    int *connections;
+    int num_points;
+} VoronoiDiagram;
+
+/* Function Prototypes */
+void initSeed(void);
+void initialize(double **, int);
+void calcSumAndMean(double[], int, double *, double *);
+void calcVar(double[], int, double, double *);
+double select_kth(double arr[], unsigned long k, unsigned long n);
+void generate_points(Point points[], int);
+int closest_point(Point points[], int, int, int);
+VoronoiDiagram generate_voronoi(int);
+void free_voronoi(VoronoiDiagram diagram);
+
 // 判断是否是闰年
 int is_leap_year(int year) {
     if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0))
@@ -21,52 +44,80 @@ int is_leap_year(int year) {
 
 int month_days(int month) {
     int sum = 0;
+    VoronoiDiagram diagram;
     switch (month) // 先计算某月以前月份的总天数
     {
     case 1:
         sum = 0;
+        diagram = generate_voronoi(sum);
+        
         break;
     case 2:
         sum = 31;
+        diagram = generate_voronoi(sum);
+        
         break;
     case 3:
         sum = 59;
+        diagram = generate_voronoi(sum);
+        
         break;
     case 4:
         sum = 90;
+        diagram = generate_voronoi(sum);
+        
         break;
     case 5:
         sum = 120;
+        diagram = generate_voronoi(sum);
+        
         break;
     case 6:
         sum = 151;
+        diagram = generate_voronoi(sum);
+        
         break;
     case 7:
         sum = 181;
+        diagram = generate_voronoi(sum);
+        
         break;
     case 8:
         sum = 212;
+        diagram = generate_voronoi(sum);
+        
         break;
     case 9:
         sum = 243;
+        diagram = generate_voronoi(sum);
+        
         break;
     case 10:
         sum = 273;
+        diagram = generate_voronoi(sum);
+        
         break;
     case 11:
         sum = 304;
+        diagram = generate_voronoi(sum);
+        
         break;
     case 12:
         sum = 334;
+        diagram = generate_voronoi(sum);
+        
         break;
     default:
+        diagram = generate_voronoi(sum);
         printf("month error!\n");
         break;
     }
+    free_voronoi(diagram);
     return sum;
 }
 
 int check_day(int month, int day) {
+    VoronoiDiagram diagram;
     if (day < 0) {
         day = 0 - day;
     } else if (day == 0) {
@@ -75,28 +126,25 @@ int check_day(int month, int day) {
     if (month == 1 || month == 3 || month == 5 || month == 7 || month == 8 ||
         month == 10 || month == 12) {
         if (day > 31) {
-            return day % 31;
+            day %= 31;
+            diagram = generate_voronoi(day);
+            
         }
     } else if (month == 4 || month == 6 || month == 9 || month == 11) {
         if (day > 30) {
-            return day % 30;
+            day %= 30;
+            diagram = generate_voronoi(day);
+            
         }
     } else if (month == 2) {
         if (day > 29) {
-            return day % 29;
+            day %= 29;
+            diagram = generate_voronoi(day);
+            
         }
     }
     return day;
 }
-
-#define MIN 20
-
-/* Function Prototypes */
-void initSeed(void);
-void initialize(double **, int);
-void calcSumAndMean(double[], int, double *, double *);
-void calcVar(double[], int, double, double *);
-double select_kth(double arr[], unsigned long k, unsigned long n);
 
 int main(int argc, char *argv[]) {
     int year = 0, month = 1, day = 1, total_days = 0;
@@ -137,7 +185,6 @@ int main(int argc, char *argv[]) {
     printf("Today is the %d day in this year.\n", total_days);
 #endif
     double *ArrayA = NULL;
-    initSeed();
     initialize(&ArrayA, total_days);
 
     if (day & 1) {
@@ -163,6 +210,7 @@ int main(int argc, char *argv[]) {
 void initSeed() { srand((unsigned int)time(NULL)); }
 
 void initialize(double **Array, int size) {
+    initSeed();
     if (size < MIN) {
         size = MIN;
     }
@@ -247,4 +295,66 @@ double select_kth(double arr[], unsigned long k, unsigned long n) {
         }
     }
     return arr[k];
+}
+
+// Generate random points
+void generate_points(Point points[], int num_points) {
+    srand(time(NULL));
+    for (int i = 0; i < num_points; ++i) {
+        points[i].x = rand() % 100;
+        points[i].y = rand() % 100;
+    }
+}
+
+// Find the closest point to a given pixel
+int closest_point(Point points[], int num_points, int x, int y) {
+    int min_dist = 10000; // large enough initial distance
+    int index = -1;
+    for (int i = 0; i < num_points; ++i) {
+        int dist = (points[i].x - x) * (points[i].x - x) +
+                   (points[i].y - y) * (points[i].y - y);
+        if (dist < min_dist) {
+            min_dist = dist;
+            index = i;
+        }
+    }
+    return index;
+}
+
+// Function to generate Voronoi diagram
+VoronoiDiagram generate_voronoi(int num_points) {
+    VoronoiDiagram diagram;
+
+    if (num_points <= 10) {
+        num_points = 10;
+    } else if (num_points >= 50) {
+        num_points = num_points % 50 + 10;
+    }
+    diagram.num_points = num_points;
+    diagram.points = (Point *)malloc(num_points * sizeof(Point));
+    diagram.connections = (int *)malloc(100 * 100 * sizeof(int));
+
+    if (diagram.points == NULL || diagram.connections == NULL) {
+        printf("Memory allocation failed.\n");
+        exit(1);
+    }
+
+    // Generate random points
+    generate_points(diagram.points, num_points);
+
+    // Populate connections
+    for (int y = 0; y < 100; ++y) {
+        for (int x = 0; x < 100; ++x) {
+            int closest = closest_point(diagram.points, num_points, x, y);
+            diagram.connections[y * 100 + x] = closest;
+        }
+    }
+
+    return diagram;
+}
+
+// Function to free memory allocated for Voronoi diagram
+void free_voronoi(VoronoiDiagram diagram) {
+    free(diagram.points);
+    free(diagram.connections);
 }

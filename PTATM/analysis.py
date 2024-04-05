@@ -167,7 +167,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='pwcet analysis service.')
 
     # Set subcommand parser.
-    subparsers = parser.add_subparsers(title='command')
+    subparsers = parser.add_subparsers(title='command', dest="subcommand")
 
     # Add subcommand segment.
     segment = subparsers.add_parser('segment', help='parse binary file into segment')
@@ -184,16 +184,16 @@ if __name__ == "__main__":
     segment.set_defaults(func=SegmentModule.service)
 
     # Add subcommand cut.
-    segment = subparsers.add_parser('cut', help='generate cut function list')
-    segment.add_argument('binary',
+    cut = subparsers.add_parser('cut', help='generate cut function list')
+    cut.add_argument('binary',
                          help='path to binary file')
-    segment.add_argument('-s', '--max-seg', metavar='', type=int, default=4,
-                         help='max segment num of main fuction, default is 4')
-    segment.add_argument('-v', '--verbose', action='store_true',
+    cut.add_argument('-s', '--max-seg', metavar='', type=int, default=10,
+                         help='max segment num of main fuction, default is 10')
+    cut.add_argument('-v', '--verbose', action='store_true',
                          help='generate detail')
-    segment.add_argument('-o', '--output', metavar='', required=True,
+    cut.add_argument('-o', '--output', metavar='', required=True,
                          help='path to save cut-node function list result')
-    segment.set_defaults(func=CutModule.service)
+    cut.set_defaults(func=CutModule.service)
 
     # Add subcommand fuzz.
     fuzz = subparsers.add_parser('fuzz', help='automated test case generation via fuzzing')
@@ -244,7 +244,7 @@ if __name__ == "__main__":
     collect.add_argument('-o', '--output', metavar='', required=True,
                          help='path to save trace')
     collect.set_defaults(func=CollectModule.service)
-
+    
     # Add subcommand seginfo.
     seginfo = subparsers.add_parser('seginfo', help='dump trace/seginfo, and generate a new seginfo')
     seginfo.add_argument('-i', '--input-trace', metavar='', action='extend', default=list(), nargs='+',
@@ -284,21 +284,39 @@ if __name__ == "__main__":
     pwcet.set_defaults(func=PWCETModule.service)
 
     # Add subcommand copula.
-    pwcet = subparsers.add_parser(
+    copula = subparsers.add_parser(
         'copula', help='generate pwcet result with vine-copula model')
-    pwcet.add_argument('-i', '--input',
+    copula.add_argument('-i', '--input',
                        help='path to segment information(or json trace)')
-    pwcet.add_argument('-f', '--function', metavar='',
+    copula.add_argument('-f', '--function', metavar='', default='main',
                        help='target functions to generate, default is main')
-    pwcet.add_argument('-t', '--evt-type', choices=list(CopulaModule.PWCET_DISTRIBUTIONS.keys()), default='GPD',
+    copula.add_argument('-n', '--simulate-number', metavar='',type=int, default=50000,
+                       help='Number of Monte Carlo simulations, default is 50w')
+    copula.add_argument('-t', '--evt-type', choices=list(CopulaModule.PWCET_DISTRIBUTIONS.keys()), default='GPD',
                        help='choose type of EVT family(GEV or GPD), default is GPD')    
-    pwcet.add_argument('-p', '--prob', metavar='', type=float, action='extend', default=argparse.SUPPRESS, nargs='+',
+    copula.add_argument('-p', '--prob', metavar='', type=float, action='extend', default=argparse.SUPPRESS, nargs='+',
                        help='exceedance probability, default is [1e-1, ..., 1e-9]')
-    pwcet.add_argument('-v', '--verbose', action='store_true',
+    copula.add_argument('-v', '--verbose', action='store_true',
                        help='generate detail')
-    pwcet.add_argument('-o', '--output', metavar='', required=True,
-                       help='path to save pwcet result')
-    pwcet.set_defaults(func=CopulaModule.service)
+    copula.add_argument('-o', '--output', metavar='', required=True,
+                       help='path to save copula pwcet result')
+    copula.set_defaults(func=CopulaModule.service)
+
+    geninput = subparsers.add_parser('geninput', help='generate input for each module')    
+    # Add subparsers for genjson sub command under collect command.
+    collect_input = geninput.add_subparsers(title='generate input for collect module', dest="subcommand")
+    collect_input = collect_input.add_parser('collect', help='generate json file for collecting trace')
+    collect_input.add_argument('binary',
+                      help='path to binary file')
+    collect_input.add_argument('-p', '--probe', metavar='', required=True,
+                      help='path to store binary segment probe info')
+    collect_input.add_argument('-i', '--input', metavar='', required=True,
+                      help='path to store binary input args')
+    collect_input.add_argument('-v', '--verbose', action='store_true',
+                         help='generate detail')
+    collect_input.add_argument('-o', '--output', metavar='', required=True,
+                         help='path to save collect json file, must end with .json')
+    collect_input.set_defaults(func=CollectModule.genjson)
 
     try:
         # Check env.

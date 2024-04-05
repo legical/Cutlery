@@ -2,8 +2,8 @@ import datetime
 import os
 import shutil
 import subprocess
-
 import angr
+import chardet
 
 
 class AFLConfig:
@@ -183,7 +183,7 @@ class Seginfo:
 
         cfg = Seginfo.genCFG(binary_path)
         function_addrs = Seginfo.getFuncStartAddrs(cfg)
-        equations = content.split(',')
+        equations = content.strip().split(',')
         seginfo = []
 
         for eq in equations:
@@ -414,13 +414,17 @@ class CaseTool:
         aggregated_content = ""
         for filename in os.listdir(in_path):
             if filename.endswith(".in"):
-                with open(os.path.join(in_path, filename), "r") as file:
-                    aggregated_content += file.read()
-
+                with open(os.path.join(in_path, filename), "rb") as file:  # 以二进制模式打开文件
+                    raw_data = file.read()
+                    detected_encoding = chardet.detect(raw_data)['encoding']
+                    if detected_encoding:
+                        aggregated_content += raw_data.decode(detected_encoding)
+                    else:
+                        # 如果无法检测编码，则默认使用UTF-8
+                        aggregated_content += raw_data.decode("utf-8", errors="replace")
+                    aggregated_content += '\n'
         # 将聚合后的内容写入到输出文件中
-        with open(cases_file_path, "a") as output_file:
+        with open(cases_file_path, "a", encoding="utf-8") as output_file:
             output_file.write(aggregated_content)
-        output_file.flush()
-        output_file.close()
         
         return cases_file_path

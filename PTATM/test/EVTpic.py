@@ -2,7 +2,15 @@ from matplotlib import pyplot as plt
 import numpy as np
 import argparse
 import sys
+import scipy.stats as stats
 sys.path.append("..")
+
+def BM(dataSet, blkSize:int=50):
+    mVector, dataSize = [], len(dataSet)
+    for i in range(blkSize):
+        s = i * int(dataSize // blkSize)
+        mVector.append(max(dataSet[s: s + int(dataSize // blkSize)]))
+    return mVector
 
 def read_evt_data():
     # 从CSV文件加载数据，跳过标题行，指定数据类型为float
@@ -37,15 +45,21 @@ def plot_data(data, output):
         clustery.append(cluster[0][1])
         clustery.append(center[1])
 
-    spd_gen = EVTTool.MixedDistributionGenerator('GPD')
+    spd_gen = EVTTool.MixedDistributionGenerator('GPD', fix_c=0)
     spd_model = spd_gen.fit(data)
     print(f"混合分布拟合结果：\n{spd_model.expression()}\n")
     spd_ccdf = [1 - spd_model.cdf(i) for i in data]
 
-    gev_gen = EVTTool.GEVGenerator()
+    gev_gen = EVTTool.GEVGenerator(fix_c=0)
     gev_model = gev_gen.fit(data, 200)
     print(f"GEV分布拟合结果：\n{gev_model.expression()}\n")
     sev_ccdf = [1 - gev_model.cdf(i) for i in data]
+
+    mVector = BM(data)
+    # 使用 Gumbel 分布进行拟合
+    evt_params = stats.gumbel_r.fit(mVector)
+    EVTTool.EVT.show_cvm(mVector, stats.gumbel_r, evt_params)
+    print(f"Gumbel拟合参数：{evt_params}")
 
     plt.figure(figsize=(18, 9))
     plt.scatter(ecdf.getx(),ecdf.gety(),label='ecdf',marker='o',color=(0.,0.5,0.))

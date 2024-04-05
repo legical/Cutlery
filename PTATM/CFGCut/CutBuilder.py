@@ -6,6 +6,7 @@ from functools import reduce
 
 
 class SegmentBuilder:
+    MAIN_SEG_KEY = r'=main'
     def __init__(self, max_seg: int, angr_cfg: angr.analyses.cfg.cfg_fast.CFGFast) -> None:
         # Normalize this cfg first if not normalized.
         if not angr_cfg.normalized:
@@ -23,7 +24,9 @@ class SegmentBuilder:
         sfg = SFGBase.SFG(cfg)
         return sfg
 
-    def genFuncSegment(self, sfg, func_names=None, output_path: str = None):
+    def genFuncSegment(self, sfg, func_names=None):
+        if isinstance(func_names, str):
+            func_names = [func_names]
         # sfg = self.SFGInit()
         sfg_builder = SFGBuilder.FunctionalSFGBuilder(self.max_seg, func_names)
         build_result = sfg_builder.build(sfg)
@@ -45,11 +48,6 @@ class SegmentBuilder:
             if last_block_addr != None:
                 func_seg_addrs.append(last_block_addr)
 
-        # 将函数分段结果输出到文件
-        if output_path is not None:
-            if len(func_seg_names) != 0:
-                with open(output_path, 'a') as output:
-                    output.write('\n' + reduce(lambda x, y: x + ',' + y, func_seg_names))
         return func_seg_names, func_seg_addrs
 
 
@@ -95,6 +93,22 @@ class CutFuncGetter:
         self.directed_cfg = CutTool.CFGTool.removeFakeRet(angr_cfg)
         # 要进行分段的函数名称集合
         self.seg_func_names = set(['main'])
+        self.func_addr_names = dict()
+        self.cut_list = []
+
+    def insertCutList(self, start_addr, end_addr, a, b):
+        try:
+            # 找到元素start_addr在列表中的索引
+            idx_s = self.cut_list.index(start_addr)
+            # 找到元素end_addr在列表中的索引
+            idx_e = self.cut_list.index(end_addr)
+            # 插入ab到start_addr, end_addr之间
+            self.cut_list[idx_s + 1:idx_e] = [a, b]
+        except ValueError:
+            raise ValueError("One or more elements not found in the list.")
+
+    def setAddrName(self, addr, name):
+        self.func_addr_names[addr] = name
 
     # 对于任意两个节点，查找是否存在割点函数
     # 如果有，添加到self.seg_func_names。并递归查找[start_block, cut_function_start_block]和[cut_function_end_block, end_block]之间的割点函数
@@ -111,6 +125,11 @@ class CutFuncGetter:
 
         cut_func_start_addr = cut_func.addr
         cut_func_end_addr = CutTool.FunctionTool.getFunctionLastBlockAddr(cut_func)
+        # update cut function info
+        self.setAddrName(cut_func_start_addr, cut_func.name)
+        self.setAddrName(cut_func_end_addr, cut_func.name)
+        self.insertCutList(start_addr, end_addr, cut_func_start_addr, cut_func_end_addr)
+
         self.findAddCutFunction(start_addr, cut_func_start_addr)
         self.findAddCutFunction(cut_func_end_addr, end_addr)
         return
@@ -120,7 +139,12 @@ class CutFuncGetter:
     def findCutFunctionFromMain(self):
         sfg_builder = SegmentBuilder(self.max_seg, self.angr_cfg)
         sfg = sfg_builder.SFGInit()
-        _, main_seg_addrs = sfg_builder.genFuncSegment(sfg, func_names=['main'])
+        main_seg_names, main_seg_addrs = sfg_builder.genFuncSegment(sfg, func_names='main')
+
+        self.func_addr_names.clear()
+        self.cut_list = main_seg_addrs.copy()
+        for addr, name in zip(main_seg_addrs, main_seg_names):
+            self.setAddrName(addr, name)
 
         if len(main_seg_addrs) < 2:
             return
@@ -130,6 +154,25 @@ class CutFuncGetter:
             start_addr, end_addr = (main_seg_addrs[i], main_seg_addrs[i + 1])
             self.findAddCutFunction(start_addr, end_addr)
 
+        cutlist, cut_funcs = list(), self.seg_func_names.copy()
+        for addr in self.cut_list:
+            name = self.func_addr_names.get(addr)
+            if name is None:
+                continue
+            # main segment, add to cut list directly
+            if SegmentBuilder.MAIN_SEG_KEY in name:
+                cutlist.append(name)
+            else:
+                # if not add this cut func
+                if name in cut_funcs:
+                    # generate segment for this function and add to cut list
+                    cut_func_segnames, _ = sfg_builder.genFuncSegment(sfg, func_names=name)
+                    cutlist.extend(cut_func_segnames)
+                    # remove this function from cut_funcs
+                    cut_funcs.remove(name)
+        
         if self.output_file is not None:
-            sfg_builder.genFuncSegment(sfg, func_names=self.seg_func_names, output_path=self.output_file)
+            if len(cutlist) != 0:
+                with open(self.output_file, 'a') as output:
+                    output.write(reduce(lambda x, y: x + ',' + y, cutlist) + '\n')
         return self.seg_func_names
