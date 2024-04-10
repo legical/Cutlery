@@ -13,7 +13,7 @@ class DataProcess:
     KEY_TIME = 'time'
 
     @staticmethod
-    def json2data(json_file: str, extract_func: str = 'main') -> OrderedDict:
+    def json2data(json_file: str, extract_func: str = 'main', extract_n:int=-1, firstn:int=5000) -> OrderedDict:
         """transform seginfo json to d*n data.
 
         Args:
@@ -39,8 +39,12 @@ class DataProcess:
             for seg_name, seg_cost in data[DataProcess.KEY_EXTRACT][extract_func].items():
                 if seg_name != DataProcess.KEY_EXCLUDE:
                     time_values = seg_cost[DataProcess.KEY_NORMCOST][DataProcess.KEY_TIME]
+                    time_values = time_values[:firstn] if firstn < len(time_values) else time_values
                     extracted_data.setdefault(seg_name, list()).extend(time_values)
                     # print(f"Func[{extract_func}] extracted {seg_name} with {len(time_values)} values.")
+                    extract_n -= 1
+                    if extract_n == 0:
+                        break
         
         if len(extracted_data) == 0:
             raise ValueError(f"Function[{extract_func}] not found in seginfo json file.")

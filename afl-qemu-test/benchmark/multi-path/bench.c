@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 void countCharacters(const char *str, int *letterCount, int *digitCount, int *spaceCount, int *vowelCount, int *otherCount, int *upperCaseCount, int *lowerCaseCount) {
     *letterCount = 0;
@@ -62,9 +60,7 @@ int main(int argc, char* argv[]) {
 
     reverseVowels(str, &upperCaseCount, &lowerCaseCount);
 
-    if (str[0] == 'H') printf("hello!\n");
-    else if (str[0] == 'w') printf("w!\n");
-    else if (str[0] == 'A') printf("vowelCount: %d\n", vowelCount);
+    if (str[0] == 'A') printf("vowelCount: %d\n", vowelCount);
     else if (str[0] == 'L') printf("letterCount: %d\n", letterCount);
     else if (str[0] == 'd') printf("digitCount: %d\n", digitCount);
     else if (str[0] == 'S') printf("spaceCount: %d\n", spaceCount);

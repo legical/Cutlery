@@ -199,7 +199,7 @@ class MixedDistribution(PWCETInterface):
     
     def isf(self, exceed_prob: float) -> float:
         if self.onlyECDF():
-            return self.ECDFmodel.isf(exceed_prob)
+            return self.KDEmodel.isf(exceed_prob)
         else:
             # TODO: Return isf for different distributions selected according to the thresholds
             if exceed_prob > 1-self.threshold_cdf:
@@ -213,12 +213,13 @@ class MixedDistribution(PWCETInterface):
 
     def expression(self) -> str:
         if self.onlyECDF():
-            return f"\t{self.getname()}\t{self.ECDFmodel.expression()}"
+            return f"\t{self.getname()}\t{self.KDEmodel.expression()}"
         else:
             return f"\t{self.getname()}\tThreshold[{self.threshold}]\n\t{self.KDEmodel.expression()}\t{self.EVTmodel.expression()}"
 
     def copy(self):
-        return MixedDistribution(self.EVTmodel.copy(), self.KDEmodel.copy(), self.threshold, self.ECDFmodel.copy())
+        params = dict(EVT=self.EVTmodel.copy(), KDE=self.KDEmodel.copy(), threshold=self.threshold, ECDF=self.ECDFmodel.copy(), name=self.name)
+        return MixedDistribution(**params)
 
     def getCDF(self):
         if self.onlyECDF():
@@ -231,7 +232,7 @@ class MixedDistribution(PWCETInterface):
 
     def cdf(self, x):
         if self.onlyECDF():
-            return self.ECDFmodel.cdf(x)
+            return self.KDEmodel.cdf(x)
         else:
             if x < self.threshold:
                 # [0, self.threshold_cdf)
@@ -682,7 +683,8 @@ class MixedDistributionGenerator():
         - MixedDistribution: The fitted mixed distribution.
 
         """
-        model_EVT, model_KDE, model_ECDF, mix_name = self.gen_EVT.fit(raw_data), None, self.gen_ECDF.fit(raw_data), '[Mixed only ECDF]'
+        # model_EVT, model_KDE, model_ECDF, mix_name = self.gen_EVT.fit(raw_data), None, self.gen_ECDF.fit(raw_data), '[Mixed only ECDF]'
+        model_EVT, model_KDE, model_ECDF, mix_name = self.gen_EVT.fit(raw_data), self.gen_KDE.fit(raw_data), self.gen_ECDF.fit(raw_data), '[Mixed only KDE]'
 
         if model_EVT is not None:
             self.threshold = self.gen_EVT.get_threshold()
@@ -690,6 +692,7 @@ class MixedDistributionGenerator():
             model_KDE = self.gen_KDE.fit(below_data)
             mix_name = '[SPD]' if 'GPD' in model_EVT.getname() else '[Mixed GEV]'
 
+        # params = dict(EVT=model_EVT, KDE=model_KDE, threshold=self.threshold, ECDF=model_ECDF, name=mix_name)
         params = dict(EVT=model_EVT, KDE=model_KDE, threshold=self.threshold, ECDF=model_ECDF, name=mix_name)
         return self.gen(**params)
 
@@ -704,8 +707,8 @@ class MixedDistributionGenerator():
         - MixedDistribution: The generated mixed distribution.
 
         """
-        ECDF = kwargs.get('ECDF', None)
-        if ECDF is None:
+        KDE = kwargs.get('KDE', None)
+        if KDE is None:
             # fit failed.
             return None
         return MixedDistribution(**kwargs)

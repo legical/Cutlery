@@ -1,4 +1,4 @@
 afl-qemu-test/out*
 afl-qemu-test/in*
-afl-qemu-test/benchmark/copula/out*
+afl-qemu-test/benchmark/*/out*
 afl-qemu-test/benchmark/copula/afl/

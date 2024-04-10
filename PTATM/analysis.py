@@ -290,14 +290,20 @@ if __name__ == "__main__":
                        help='path to segment information(or json trace)')
     copula.add_argument('-f', '--function', metavar='', default='main',
                        help='target functions to generate, default is main')
+    copula.add_argument('-s', '--segment-number', metavar='',type=int, default=-1,
+                       help='Select how many Segments to fit, less than 0 selects all of the Segments of the function, default is -1')
     copula.add_argument('-n', '--simulate-number', metavar='',type=int, default=50000,
                        help='Number of Monte Carlo simulations, default is 5w')
+    copula.add_argument('-F', '--firstn', metavar='',type=int, default=5000,
+                       help='Take the first n numbers, default is 5k')
     copula.add_argument('-t', '--evt-type', choices=list(CopulaModule.PWCET_DISTRIBUTIONS.keys()), default='GPD',
                        help='choose type of EVT family(GEV or GPD), default is GPD')    
     copula.add_argument('-p', '--prob', metavar='', type=float, action='extend', default=argparse.SUPPRESS, nargs='+',
                        help='exceedance probability, default is [1e-1, ..., 1e-9]')
     copula.add_argument('-v', '--verbose', action='store_true',
                        help='generate detail')
+    copula.add_argument('-a', '--all', action='store_true',
+                       help='Whether to fit the full marginal distribution, false: only SPDs are fit')
     copula.add_argument('-o', '--output', metavar='', required=True,
                        help='path to save copula pwcet result')
     copula.set_defaults(func=CopulaModule.service)

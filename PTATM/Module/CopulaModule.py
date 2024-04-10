@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import csv
 from functools import reduce
 import os
 import Module.PTATM as PTATM
@@ -11,6 +12,32 @@ PWCET_DISTRIBUTIONS = {
     'GPD': EVTTool.GPDGenerator,
     'EP': EVTTool.ExponentialParetoGenerator
 }
+
+def merge2file(args, raw_data: OrderedDict, total_cost:list):
+    # 获取OrderedDict的key
+    keys = list(raw_data.keys())
+
+    # 获取output文件所在路径的文件夹
+    folder_path = os.path.dirname(args.output)
+
+    # 新建data.csv文件
+    csv_file_path = os.path.join(folder_path, 'data.csv')
+
+    try:
+        with open(csv_file_path, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+
+            # 写入标题行
+            header = list(keys) + ['total']
+            writer.writerow(header)
+
+            # 写入数据行
+            for i in range(len(total_cost)):
+                row = [raw_data[key][i] for key in keys]
+                row.append(total_cost[i])
+                writer.writerow(row)
+    except Exception as e:
+        PTATM.error(f'merge simulate data to file failed : {e}')
 
 
 def margin_distributions(args, raw_data: OrderedDict):
@@ -43,6 +70,7 @@ def simulate_and_merge(args, raw_data: OrderedDict, copula_model: CopulaTool.Cop
     task_merge_data = CopulaTool.DataProcess.merge_simulate_obsdata(raw_data, inverse_values)
     # sum as task excution time list
     task_costs = CopulaTool.DataProcess.combine(task_merge_data, ECDF_value)
+    merge2file(args, task_merge_data, task_costs)
     return task_costs
 
 # TODO: 类信封方法. 难点：其他分布类型怎么simulate？
@@ -64,7 +92,7 @@ def service(args):
     # Build copula object.
     if args.verbose:
         PTATM.info(f'Parsing data from {args.input} with function[{args.function}].')
-    raw_data = CopulaTool.DataProcess.json2data(args.input, args.function)
+    raw_data = CopulaTool.DataProcess.json2data(args.input, args.function, args.segment_number, args.firstn)
 
     # fit spd distribution
     if args.verbose:
@@ -89,7 +117,7 @@ def service(args):
             # 平稳性检验通过
             break
         else:
-            PTATM.warning(f'pWCET fitting failed for {i+1} times.')
+            PTATM.warn(f'pWCET fitting failed for {i+1} times.')
 
     # 若三次拟合都不成功，则使用最后一次拟合结果
     evt_types = ['GPD', 'GEV']

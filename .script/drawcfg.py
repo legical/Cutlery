@@ -38,7 +38,7 @@ def getUserFunctionList(cfg: angr.analyses.cfg.cfg_fast.CFGFast) -> dict:
     return funcList
 
 
-def processGraph(cfg, all_cfg: bool = False, remove_fakeret: bool = False):
+def processGraph(cfg, funcname: str, remove_fakeret: bool = False):
     # Normalize this cfg and func first if not normalized.
     if not cfg.normalized:
         cfg.normalize()
@@ -49,24 +49,24 @@ def processGraph(cfg, all_cfg: bool = False, remove_fakeret: bool = False):
         cfg.graph.remove_edges_from(edges_to_remove)
 
     # Remove all edges which are not from main function
-    if not all_cfg:
-        main_function = cfg.kb.functions.function(name="main")
-        target_node = cfg.get_any_node(main_function.addr)
-        subgraphs = list(nx.weakly_connected_components(cfg.graph))
-        target_subgraph = None
-        for subgraph in subgraphs:
-            if target_node in subgraph:
-                target_subgraph = subgraph
-                break
-        # 删除其他节点和边
-        nodes_to_remove = set(cfg.graph.nodes()) - target_subgraph
-        cfg.graph.remove_nodes_from(nodes_to_remove)
+    # if not all_cfg:
+    draw_function = cfg.kb.functions.function(name=funcname)
+    target_node = cfg.get_any_node(draw_function.addr)
+    subgraphs = list(nx.weakly_connected_components(cfg.graph))
+    target_subgraph = None
+    for subgraph in subgraphs:
+        if target_node in subgraph:
+            target_subgraph = subgraph
+            break
+    # 删除其他节点和边
+    nodes_to_remove = set(cfg.graph.nodes()) - target_subgraph
+    cfg.graph.remove_nodes_from(nodes_to_remove)
 
     return cfg
 
 
-def generate_cfg(target_path, output_path, use_emulated: bool = False, all_cfg: bool = False, remove_fakeret: bool = False):
-    print("Gen cfg for [%s] at main function with output [%s]." % (target_path, output_path))
+def generate_cfg(target_path, output_path, use_emulated: bool = False, funcname: str = 'main', remove_fakeret: bool = False):
+    print(f"Gen cfg for [{target_path}] at function[{funcname}] with output [{output_path}].")
     project = angr.Project(target_path, load_options={'auto_load_libs': False})
 
     if use_emulated:
@@ -74,17 +74,17 @@ def generate_cfg(target_path, output_path, use_emulated: bool = False, all_cfg: 
     else:
         cfg = project.analyses.CFGFast()
 
-    # 获取函数对象
-    function = project.kb.functions.function(name="main")
+    # # 获取函数对象
+    # function = project.kb.functions.function(name="main")
 
-    # 获取函数对象的最后一个基本块
-    last_block = function.endpoints[0]
-    print(len(function.endpoints))
+    # # 获取函数对象的最后一个基本块
+    # last_block = function.endpoints[0]
+    # print(len(function.endpoints))
 
-    # 打印最后一个基本块的地址
-    print(f"最后一个基本块的地址：{hex(last_block.addr)} = main + {hex(last_block.addr - function.addr)}")
+    # # 打印最后一个基本块的地址
+    # print(f"最后一个基本块的地址：{hex(last_block.addr)} = main + {hex(last_block.addr - function.addr)}")
 
-    cfg = processGraph(cfg, all_cfg, remove_fakeret)
+    cfg = processGraph(cfg, funcname, remove_fakeret)
 
     if output_path.endswith('.png') or output_path.endswith('.jpg'):
         output_path = output_path[:-4]  # 去掉结尾的.png或.jpg
@@ -115,10 +115,9 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--output', help='Path to save the CFG graph', required=True)
     parser.add_argument('-e', '--emulated', action='store_true',
                         help='Use CFGEmulated instead of CGFFast', required=False, default=False)
-    parser.add_argument('-a', '--all-cfg', action='store_true',
-                        help='Draw all CFG, not just main function', required=False, default=False)
+    parser.add_argument('-f', '--function', help='Only draw this function', required=False, default='main')
     parser.add_argument('-r', '--remove-fakeret', action='store_true',
                         help='Remove all edges with jumpkind Ijk_FakeRet', required=False, default=False)
     args = parser.parse_args()
 
-    generate_cfg(args.target_path, args.output, args.emulated, args.all_cfg, args.remove_fakeret)
+    generate_cfg(args.target_path, args.output, args.emulated, args.function, args.remove_fakeret)
