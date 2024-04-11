@@ -2,6 +2,8 @@ from collections import OrderedDict
 import csv
 from functools import reduce
 import os
+import matplotlib.pyplot as plt
+import numpy as np
 import Module.PTATM as PTATM
 from PWCETGenerator import CopulaTool, EVTTool
 
@@ -13,7 +15,33 @@ PWCET_DISTRIBUTIONS = {
     'EP': EVTTool.ExponentialParetoGenerator
 }
 
-def merge2file(args, raw_data: OrderedDict, total_cost:list):
+
+def drawpWCET(x: list, y: list, output_file: str):
+    # 绘制图形
+    plt.plot(x, y)
+    plt.title('pWCET')
+    plt.xlabel('time')
+    plt.ylabel('prob')
+
+    # 将文件路径改为.png
+    if not output_file.endswith('.png'):
+        last_dot_index = output_file.rfind('.')
+
+        # 如果找到了点
+        if last_dot_index != -1:
+            # 将最后一个点及其后面的字符串替换为 '.png'
+            new_file_path = output_file[:last_dot_index] + '.png'
+            return new_file_path
+        else:
+            # 如果找不到点，则直接在末尾添加 '.png'
+            return output_file + '.png'
+
+    # 保存图形
+    plt.savefig(output_file)
+    plt.close()
+
+
+def merge2file(args, raw_data: OrderedDict, total_cost: list):
     # 获取OrderedDict的key
     keys = list(raw_data.keys())
 
@@ -61,8 +89,6 @@ def margin_distributions(args, raw_data: OrderedDict):
 
 def simulate_and_merge(args, raw_data: OrderedDict, copula_model: CopulaTool.CopulaModel, ECDF_value: int = 0):
     # simulate
-    if args.verbose:
-        PTATM.info(f'Try to simulate {args.simulate_number} observations.')
     sim_values = copula_model.simulate(args.simulate_number)
     # inverse CDF
     inverse_values = copula_model.inverse_transform(sim_values)
@@ -83,7 +109,8 @@ def service(args):
     if not hasattr(args, 'function') or args.function is None:
         args.function = 'main'
     if not hasattr(args, 'prob'):
-        args.prob = [10**-x for x in range(1, 10)]
+        # args.prob = [10**-x for x in range(1, 10)]
+        args.prob = np.logspace(np.log10(0.1), np.log10(1e-9), num=500)
     if args.evt_type not in PWCET_DISTRIBUTIONS.keys():
         raise Exception(f'Unrecognized evt-type[{args.evt_type}].')
     if os.path.exists(args.output):
@@ -112,6 +139,8 @@ def service(args):
     task_costs = None
     # 尝试3次pWCET拟合
     for i in range(3):
+        if args.verbose:
+            PTATM.info(f'Try to simulate {args.simulate_number} observations.  [{i+1}]')
         task_costs = simulate_and_merge(args, raw_data, cop_model)
         if EVTTool.EVT.passed_kpss(task_costs) and EVTTool.EVT.passed_bds(task_costs):
             # 平稳性检验通过
@@ -122,24 +151,26 @@ def service(args):
     # 若三次拟合都不成功，则使用最后一次拟合结果
     evt_types = ['GPD', 'GEV']
     for evt_type in evt_types:
-        evt_distribution = PWCET_DISTRIBUTIONS[evt_type](fix_c=0)
+        evt_distribution = PWCET_DISTRIBUTIONS[evt_type](fix_c=0, nr_sample=50)
         pwcet_model = evt_distribution.fit(task_costs)
         if pwcet_model is not None:
             if args.verbose:
                 PTATM.info(f'Fit [{args.function}] pWCET with evt-type [{evt_type}].')
+                PTATM.info(pwcet_model.expression())
             break
 
     if pwcet_model is not None:
         if args.verbose:
-            PTATM.info(f'Generate [{args.function}] result into [{args.output}].')
+            PTATM.info(f'Generate [{args.function}] result into [{args.output}].')            
         with open(args.output, 'a') as output:
             # Write head line.
             headline = reduce(lambda x, y: str(x)+','+str(y), ['function'] + args.prob)
             output.write('\n' + headline)
             # gen pWCET
-            pwcet = [round(pwcet_model.isf(p), 8) for p in args.prob]
+            pwcet = [round(pwcet_model.isf(p), 10) for p in args.prob]
             body = f"{args.function},{','.join(map(str, pwcet))}"
             output.write('\n' + body)
+            drawpWCET(pwcet, args.prob, args.output)
 
     if args.verbose:
         PTATM.info('Done.')
