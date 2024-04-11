@@ -53,8 +53,8 @@ def margin_distributions(args, raw_data: OrderedDict):
             ECDF_value += max(seg_cost)
         models.append(spd_model)
         costs.append(seg_cost)
-        if args.verbose:
-            PTATM.info(f'Fit segment [{seg_name}] done.\n{spd_model.expression()}\n')
+        # if args.verbose:
+        #     PTATM.info(f'Fit segment [{seg_name}] done.\n{spd_model.expression()}\n')
 
     return models, costs, ECDF_value
 
@@ -116,8 +116,8 @@ def service(args):
         if EVTTool.EVT.passed_kpss(task_costs) and EVTTool.EVT.passed_bds(task_costs):
             # 平稳性检验通过
             break
-        else:
-            PTATM.warn(f'pWCET fitting failed for {i+1} times.')
+        # else:
+        #     PTATM.warn(f'pWCET fitting failed for {i+1} times.')
 
     # 若三次拟合都不成功，则使用最后一次拟合结果
     evt_types = ['GPD', 'GEV']
@@ -137,7 +137,7 @@ def service(args):
             headline = reduce(lambda x, y: str(x)+','+str(y), ['function'] + args.prob)
             output.write('\n' + headline)
             # gen pWCET
-            pwcet = [round(pwcet_model.isf(p), 4) for p in args.prob]
+            pwcet = [round(pwcet_model.isf(p), 8) for p in args.prob]
             body = f"{args.function},{','.join(map(str, pwcet))}"
             output.write('\n' + body)
 

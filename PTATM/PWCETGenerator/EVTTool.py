@@ -492,7 +492,7 @@ class EVT():
         result = cramervonmises(ext_data, ext_func.cdf, params)
         p_value = result.pvalue
         if p_value > EVT.ConfidenceLevel:
-            print(f"[INFO] p_value[{p_value}] > {EVT.ConfidenceLevel}, fit {len(ext_data)} samples succeed.")
+            # print(f"[INFO] p_value[{p_value}] > {EVT.ConfidenceLevel}, fit {len(ext_data)} samples succeed.")
             return True
         else:
             # print(f'[WARN] p_value[{p_value}] < {EVT.ConfidenceLevel}, try to get more than {len(ext_data)} samples.')
