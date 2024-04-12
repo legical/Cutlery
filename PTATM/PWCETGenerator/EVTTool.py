@@ -88,8 +88,10 @@ class EmpiricalDistribution(PWCETInterface):
         super().__init__()
         self.ecdf_func = ecdf_func
         self.name = '[ECDF]'
+        self.isf_func = EmpiricalDistribution.get_isf(ecdf_func)
 
     def isf(self, exceed_prob: float) -> float:
+        # return self.isf_func(1-exceed_prob)
         return self.ecdf_func.x[np.argmax(self.ecdf_func.y >= 1 - exceed_prob)]
 
     def expression(self) -> str:
@@ -103,6 +105,14 @@ class EmpiricalDistribution(PWCETInterface):
 
     def getCDF(self):
         return rv_discrete(name='EmpiricalDistribution', values=(self.ecdf_func.x, self.ecdf_func.y))
+
+    @staticmethod
+    def get_isf(ecdf_func):
+        unique_cdf_values, unique_indices = np.unique(ecdf_func.y, return_index=True)
+        unique_x = ecdf_func.x[unique_indices]
+        inversefunction = interpolate.interp1d(
+            unique_cdf_values, unique_x, kind='cubic', bounds_error=False, fill_value=(unique_x[0], unique_x[-1]))
+        return inversefunction
 
 
 class ExtremeDistribution(PWCETInterface):

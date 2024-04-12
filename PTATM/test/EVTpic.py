@@ -26,15 +26,14 @@ def read_evt_data():
 
     return CYCLES1, CYCLES2
 
-def plot_data(data, output):
+def plot_data2(data, output):
     # 绘制ECDF散点图 和 斜率图
     # ECDF散点图：x为源数据，y为1-CDF
     from PWCETGenerator import DataFilter, EVTTool
-    ecdf = DataFilter.CoordinatePoints(x=data)
-
-    slopes, x_data = ecdf.slopes()
-    slope = DataFilter.CoordinatePoints(x_data, slopes)
-    slope.normalize()
+    ecdf_gen = EVTTool.ECDFGenerator()
+    ecdf_model = ecdf_gen.fit(data)
+    ecdf_prob = np.linspace(0, 1, 1000)
+    ecdf_pwcet = [ecdf_model.isf(p) for p in ecdf_prob]
 
     kcluster  = DataFilter.KMeansCluster(data, 3)
     centers, clusters = kcluster.cluster(0.1, 50)
@@ -62,13 +61,31 @@ def plot_data(data, output):
     print(f"Gumbel拟合参数：{evt_params}")
 
     plt.figure(figsize=(18, 9))
-    plt.scatter(ecdf.getx(),ecdf.gety(),label='ecdf',marker='o',color=(0.,0.5,0.))
+    plt.scatter(ecdf_pwcet,ecdf_prob,label='ecdf',marker='o',color=(0.,0.5,0.))
     # plt.scatter(slope.getx(),slope.gety(),label='slope',marker='.',color=(0.,0.,0.5))
 
     plt.plot(data,spd_ccdf,label='Mix-SPD',color=(0.5,0.,0.))
     plt.plot(data,sev_ccdf,label='GEV',color=(0.5,0.5,0.))
     plt.plot(clusterx, clustery, 'b*--', alpha=0.5, linewidth=1, label='acc')
     plt.legend(loc="best")
+    plt.savefig(output)
+
+def plot_data(data, output):
+    # 绘制ECDF散点图 和 斜率图
+    # ECDF散点图：x为源数据，y为1-CDF
+    from PWCETGenerator import DataFilter, EVTTool
+    ecdf_gen = EVTTool.ECDFGenerator()
+    ecdf_model = ecdf_gen.fit(data)
+    ecdf_prob = np.logspace(np.log10(0.1), np.log10(1e-9), num=500)
+    ecdf_pwcet = [ecdf_model.isf(p) for p in ecdf_prob]
+    sorted_indices = sorted(range(len(ecdf_pwcet)), key=lambda k: ecdf_pwcet[k])
+    x_sorted = [ecdf_pwcet[i] for i in sorted_indices]
+    y_sorted = [ecdf_prob[i] for i in sorted_indices]
+
+    plt.figure(figsize=(18, 9))
+    plt.plot(x_sorted, y_sorted)
+
+    # plt.legend(loc="best")
     plt.savefig(output)
 
 if __name__ == "__main__":

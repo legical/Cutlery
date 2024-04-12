@@ -1,6 +1,7 @@
 import os
 import traceback
 import argparse
+import re
 from Module import PTATM, SegmentModule, CutModule, FuzzModule, ControlModule, CollectModule, SeginfoModule, PWCETModule, CopulaModule
 
 helper = """
@@ -163,6 +164,23 @@ Provide pwcet analysis service.
             by positional argument, see PWCETGenerator/PWCETSolver.py for detail.
 """
 
+def human_readable_to_number(human_readable):
+    units = {
+        'k': 10**3,
+        'w': 10**4,
+        'kw': 10**7
+    }
+
+    match = re.match(r'^(\d+)([kKwW]?)$', human_readable)
+    if match:
+        number = int(match.group(1))
+        unit = match.group(2).lower()
+        if unit in units:
+            number *= units[unit]
+        return number
+    else:
+        raise argparse.ArgumentTypeError('Invalid human-readable number format')
+    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='pwcet analysis service.')
 
@@ -288,22 +306,18 @@ if __name__ == "__main__":
         'copula', help='generate pwcet result with vine-copula model')
     copula.add_argument('-i', '--input',
                        help='path to segment information(or json trace)')
-    copula.add_argument('-f', '--function', metavar='', default='main',
-                       help='target functions to generate, default is main')
     copula.add_argument('-s', '--segment-number', metavar='',type=int, default=-1,
                        help='Select how many Segments to fit, less than 0 selects all of the Segments of the function, default is -1')
-    copula.add_argument('-n', '--simulate-number', metavar='',type=int, default=50000,
-                       help='Number of Monte Carlo simulations, default is 5w')
-    copula.add_argument('-F', '--firstn', metavar='',type=int, default=5000,
-                       help='Take the first n numbers, default is 5k')
-    copula.add_argument('-t', '--evt-type', choices=list(CopulaModule.PWCET_DISTRIBUTIONS.keys()), default='GPD',
-                       help='choose type of EVT family(GEV or GPD), default is GPD')    
+    copula.add_argument('-n', '--simulate-number', metavar='',type=human_readable_to_number, default='5w', nargs='?',
+                       help='Number of Monte Carlo simulations (supports k, w, kw), default is 5w')
+    copula.add_argument('-F', '--firstn', metavar='',type=human_readable_to_number, default='5k', nargs='?',
+                       help='Take first n numbers for each segment (supports k, w, kw), default is 5k')
+    copula.add_argument('-f', '--function', metavar='', action='extend', default=argparse.SUPPRESS, nargs='+',
+                       help='target functions to generate, default is main only')
     copula.add_argument('-p', '--prob', metavar='', type=float, action='extend', default=argparse.SUPPRESS, nargs='+',
-                       help='exceedance probability, default is [1e-1, ..., 1e-9]')
+                       help='exceedance probability, default: 500 numbers between [1e-1,1e-9]')
     copula.add_argument('-v', '--verbose', action='store_true',
                        help='generate detail')
-    copula.add_argument('-a', '--all', action='store_true',
-                       help='Whether to fit the full marginal distribution, false: only SPDs are fit')
     copula.add_argument('-o', '--output', metavar='', required=True,
                        help='path to save copula pwcet result')
     copula.set_defaults(func=CopulaModule.service)
