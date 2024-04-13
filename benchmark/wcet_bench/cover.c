@@ -1,8 +1,9 @@
+#include <stdio.h>
 int swi120(int c)
 {
-	int i;
-	for (i=0; i<120; i++) {
-		switch (i) {
+	// int i;
+	// for (i=0; i<120; i++) {
+		switch (c) {
 			case 0: c++; break;
 			case 1: c++; break;
 			case 2: c++; break;
@@ -125,16 +126,16 @@ int swi120(int c)
 			case 119: c++; break;
 			default: c--; break;
 		}
-	}
+	// }
 	return c;
 }
 
 
 int swi50(int c)
 {
-	int i;
-	for (i=0; i<50; i++) {
-		switch (i) {
+	// int i;
+	// for (i=0; i<50; i++) {
+		switch (c) {
 			case 0: c++; break;
 			case 1: c++; break;
 			case 2: c++; break;
@@ -197,16 +198,16 @@ int swi50(int c)
 			case 59: c++; break;
 			default: c--; break;
 		}
-	}
+	// }
 	return c;
 }
 
 
 int swi10(int c)
 {
-	int i;
-	for (i=0; i<10; i++) {
-		switch (i) {
+	// int i;
+	// for (i=0; i<10; i++) {
+		switch (c) {
 			case 0: c++; break;
 			case 1: c++; break;
 			case 2: c++; break;
@@ -219,17 +220,19 @@ int swi10(int c)
 			case 9: c++; break;
 			default: c--; break;
 		}
-	}
+	// }
 	return c;
 }
 
 int main() 
 {
+	int choosen=0;
+	scanf("%d", &choosen);
 	volatile int cnt=0;
 
-	cnt=swi10(cnt);
-	cnt=swi50(cnt);
-	cnt=swi120(cnt);
+	cnt=swi10(choosen);
+	cnt=swi50(choosen);
+	cnt=swi120(choosen);
 
 	/* printf("cnt: %d\n", cnt); */
 
