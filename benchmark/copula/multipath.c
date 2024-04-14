@@ -149,16 +149,16 @@ int check_day(int month, int day) {
 int main(int argc, char *argv[]) {
     int year = 0, month = 1, day = 1, total_days = 0;
     // Check if there are enough command line arguments
-    if (argc >= 2) {
-        // Convert command line arguments to integers
-        year = atoi(argv[1]);
-        if (argc >= 3) {
-            month = atoi(argv[2]);
-            if (argc >= 4) {
-                day = atoi(argv[3]);
-            }
-        }
-    } else {
+    // if (argc >= 2) {
+    //     // Convert command line arguments to integers
+    //     year = atoi(argv[1]);
+    //     if (argc >= 3) {
+    //         month = atoi(argv[2]);
+    //         if (argc >= 4) {
+    //             day = atoi(argv[3]);
+    //         }
+    //     }
+    // } else {
 // If not enough command line arguments, read from stdin
 #ifdef POUT
         printf("Enter three integers separated by spaces: ");
@@ -166,7 +166,7 @@ int main(int argc, char *argv[]) {
         char input[100];
         fgets(input, sizeof(input), stdin);
         sscanf(input, "%d %d %d", &year, &month, &day);
-    }
+    // }
 
     total_days = month_days(month);
     day = check_day(month, day);
