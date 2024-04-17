@@ -1,7 +1,7 @@
 {
     "target": {
         "core": [
-            2
+            1
         ],
         "task": [
             {
@@ -9,29 +9,30 @@
                 "binary": "./multi",
                 "probes": [
                     "main__0=main",
-                    "main__1=main+0x110",
+                    "main__1=main+0x92",
                     "month_days__0=month_days",
                     "month_days__1=month_days+0x2ea",
                     "month_days__2=month_days+0x2fc",
                     "month_days=month_days%return",
-                    "main__2=main+0x11d",
+                    "main__2=main+0x9c",
                     "check_day__0=check_day",
                     "check_day__1=check_day+0x39",
                     "check_day__2=check_day+0x17a",
                     "check_day=check_day%return",
-                    "main__3=main+0x138",
+                    "main__3=main+0xae",
                     "is_leap_year__0=is_leap_year",
                     "is_leap_year=is_leap_year%return",
-                    "main__4=main+0x157",
-                    "main__5=main+0x18c",
+                    "main__4=main+0xc1",
+                    "main__5=main+0xe1",
+                    "main__6=main+0xfa",
                     "initialize__0=initialize",
                     "initialize__1=initialize+0x18",
                     "initialize__2=initialize+0x25",
                     "initialize__3=initialize+0x36",
                     "initialize=initialize%return",
-                    "main__6=main+0x1ae",
-                    "main__7=main+0x234",
-                    "main__8=main+0x243",
+                    "main__7=main+0x113",
+                    "main__8=main+0x178",
+                    "main__9=main+0x184",
                     "main=main%return"
                 ],
                 "inputs": [
@@ -186,7 +187,12 @@
                     "6000 7 2",
                     "601000 70 770 7 2",
                     " 8 338 2000 8 33",
-                    "\\u00b2000"
+                    "\\u00b2000",
+                    "\u00b2000 1 2",
+                    "20\u00b00 1 2",
+                    "2\u00b000 1 2",
+                    "2 00 1 2",
+                    "2000 q 2"
                 ]
             }
         ]
