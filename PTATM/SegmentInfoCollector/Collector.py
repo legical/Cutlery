@@ -13,18 +13,26 @@ class TraceCollector:
         return 0 == result.returncode
 
     @staticmethod
-    def execWithResult(shellcmd: str):
-        return subprocess.run(shellcmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    def execWithResult(shellcmd: str, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
+        return subprocess.run(shellcmd, shell=True, stdout=stdout, stderr=stderr)
 
     @staticmethod
     def addprobe(binary: str, probe: str) -> bool:
         cmd = "perf probe -x " + binary + " -a " + probe
-        # print("exec:", cmd)
+        # print("addprobe:", cmd)
         return TraceCollector.exec(cmd)
 
     @staticmethod
     def delprobe(probe: str) -> bool:
         return TraceCollector.exec("perf probe -d " + probe)
+    
+    @staticmethod
+    def showprobe(binary: str) -> bool:
+        cmd = f"perf probe -l"
+        probe_info = TraceCollector.execWithResult(cmd)
+        if probe_info.returncode != 0:
+            raise Exception(f"Failed exec [{cmd}].\n[Error]: {probe_info.stderr.decode('utf-8')}")
+        print(f"binary[{binary}] probes:\n{probe_info.stdout.decode('utf-8')}\n")
 
     @staticmethod
     def fetchSegmentAndTime(traceinfo: str) -> str:
@@ -44,8 +52,11 @@ class TraceCollector:
         script = "perf script -F time,event -i %s" % TraceCollector.RECORD_FILE
 
         # Use perf record to collect trace.
-        if not TraceCollector.exec(record):
-            return (False, "Record command " + command + " failed. " + record)
+        record_result = TraceCollector.execWithResult(record, stdout=subprocess.DEVNULL)
+        if record_result.returncode != 0:
+            return (False, f"Record [{record}] failed!\n{record_result.stderr.decode('utf-8')}")
+        # if not TraceCollector.exec(record):
+        #     return (False, "Record command " + command + " failed. " + record)
 
         # Use perf script to dump trace.
         traceinfo_result = TraceCollector.execWithResult(script)

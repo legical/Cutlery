@@ -31,6 +31,8 @@ def gentrace(binary: str, command: str, uprobes: list, clock: str):
             if not TraceCollector.addprobe(binary, TraceCollector.PROBE_PREFIX + uprobe):
                 raise Exception('Failed to add uprobe[%s] for binary[%s].' %
                                 (TraceCollector.PROBE_PREFIX + uprobe, binary))
+            
+        # TraceCollector.showprobe(binary)
         # Start collect.
         ok, info = TraceCollector.collectTrace(command, clock)
         if not ok:
@@ -126,7 +128,7 @@ def service(args):
         pwd = os.getcwd()
         for task in target[TASK]:
             taskdir = task[DIR]
-            binary = task[BINARY]
+            binary = os.path.abspath(task[BINARY])
             uprobes = task[PROBES]
             inputs = task[INPUTS]
             cmdpat = 'taskset -c %%d %s %%s' % binary

@@ -255,7 +255,7 @@ if __name__ == "__main__":
                          help="path to config of the target to collect and its contenders")
     collect.add_argument('-c', '--clock', metavar='', default='global',
                          help='clock the tracer used, default is global, see man perf record')
-    collect.add_argument('-r', '--repeat', metavar='', type=int, default=20,
+    collect.add_argument('-r', '--repeat', metavar='', type=human_readable_to_number, default='5k', nargs='?',
                          help='generate multiple trace information by repeating each input, default is 20')
     collect.add_argument('-v', '--verbose', action='store_true',
                          help='generate detail')
