@@ -4,10 +4,12 @@
 # It takes two arguments:
 # 1. The source code file (.c file)
 # 2. The input file to be used for testing
+# 3. The mode of input, default is scanf mode
 
 # Check if the correct number of arguments is provided
-if [ $# -ne 2 ]; then
-    echo "Usage: $0 <source_code_.c_file> <input_file>"
+if [ $# -lt 2 ]; then
+    echo "Usage: $0 <source_code_.c_file> <input_file> <mode>"
+    echo "     mode: @ for cmd args, otherwise for scanf like"
     exit 1
 fi
 
@@ -23,6 +25,18 @@ check_file_exists() {
 # Assigning arguments to variables
 source_code_file=$(readlink -f "$1")
 input_file=$(readlink -f "$2")
+
+# check mode
+CMD_ARGS_MODE="@"
+SCANF_MODE="scanf"
+mode=$SCANF_MODE
+
+if [ $# -ge 3 ] && [ "$3" = "@" ]; then
+    mode=$CMD_ARGS_MODE
+    echo "Using command line arguments mode"
+else
+    echo "Using scanf mode"
+fi
 
 check_file_exists "$source_code_file"
 check_file_exists "$input_file"
@@ -53,7 +67,11 @@ while IFS= read -r line; do
     if [ -z "$(echo "$line" | sed 's/ *//g')" ]; then
         continue
     fi
-    echo "$line" | "./${source_code_file%.*}"
+    if [ "$mode" = "$CMD_ARGS_MODE" ]; then
+        ./${source_code_file%.*} $line
+    else
+        echo "$line" | "./${source_code_file%.*}"
+    fi
 done < "$input_file"
 
 # Generate coverage report
