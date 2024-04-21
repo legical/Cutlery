@@ -1,6 +1,7 @@
 import argparse
 import angr
 
+
 def showFuncAttr(cfg: angr.analyses.cfg.cfg_fast.CFGFast) -> dict:
     # Normalize this cfg and func first if not normalized.
     if not cfg.normalized:
@@ -15,17 +16,33 @@ def showFuncAttr(cfg: angr.analyses.cfg.cfg_fast.CFGFast) -> dict:
         print(f"size==0?: {func.size == 0}\n")
 
 
-def genCFG(target_path:str, lib:bool=False):
+def genCFG(target_path: str, lib: bool = False):
     project = angr.Project(target_path, load_options={'auto_load_libs': lib})
     cfg = project.analyses.CFGFast()
     showFuncAttr(cfg)
+    showSuccessors(cfg)
+
+
+def showSuccessors(cfg):
+    func = cfg.kb.functions.function(name='main')
+    print(type(func.nodes.values()), func.nodes.values())
+    for addr in func.block_addrs:
+        angrNode = cfg.get_any_node(addr)
+        # print(type(angrNode))
+        sucnames = []
+        for successor in angrNode.successors:
+            sucnames.append(successor.name)
+        print(f"{angrNode.name} has ssuccessors: {sucnames}\n\n")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description='Generate CFG graph using angr and save it to a PNG file', add_help=True)
+        description='Generate CFG graph using angr and save it to a PNG file',
+        add_help=True)
     parser.add_argument('target_path', help='Path to the target program')
-    parser.add_argument('-l', '--lib', action='store_true',
-                      help='auto_load_libs')
+    parser.add_argument('-l',
+                        '--lib',
+                        action='store_true',
+                        help='auto_load_libs')
     args = parser.parse_args()
     genCFG(args.target_path, args.lib)
