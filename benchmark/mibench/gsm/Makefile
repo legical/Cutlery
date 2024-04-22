@@ -32,10 +32,10 @@ SASR	= -DSASR
 # CC		= /usr/lang/acc
 # CCFLAGS 	= -c -O
 
-CC		= gcc -ansi -pedantic -static
+CC		= gcc -ansi -pedantic
 # ARM gcc doesn't like the -O1 here...
 #CCFLAGS 	= -c -O1 -DSTUPID_COMPILER -DNeedFunctionPrototypes=1
-CCFLAGS 	= -c -O3 -DSTUPID_COMPILER -DNeedFunctionPrototypes=1
+CCFLAGS 	= -c -DSTUPID_COMPILER -DNeedFunctionPrototypes=1
 
 LD 		= $(CC)
 
@@ -413,12 +413,21 @@ semi-clean:
 			$(TST)/*.*.*
 		-$(FIND) . \( -name core -o -name foo \) \
 			-print | xargs rm $(RMFLAGS)
-
-clean:	semi-clean
-		-rm $(RMFLAGS) $(LIBGSM) $(ADDTST)/add		\
-			$(TOAST) $(TCAT) $(UNTOAST)	\
-			$(ROOT)/gsm-1.0.tar.Z \
-			output*
+			
+clean:
+	@if [ -z "$(OUT)" ]; then \
+		echo "clean $(pwd)"; \
+	else \
+		echo "mv $(BINFILE) to $(OUT)"; \
+		mkdir -p $(OUT); \
+		mv -f $(TOAST) $(OUT)/gsm_toast; \
+		mv -f $(UNTOAST) $(OUT)/gsm_untoast; \
+	fi;
+	$(MAKE) semi-clean
+	-rm $(RMFLAGS) $(LIBGSM) $(ADDTST)/add		\
+		$(TOAST) $(TCAT) $(UNTOAST)	\
+		$(ROOT)/gsm-1.0.tar.Z \
+		output*
 
 
 # Two tools that helped me generate gsm_encode.c and gsm_decode.c,

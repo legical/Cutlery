@@ -4,11 +4,18 @@
 # To use NIST's modified SHA of 7/11/94, define USE_MODIFIED_SHA
 
 CC = gcc
-CFLAGS = -O3 -Wall
+CFLAGS = -Wall
+BINFILE = sha
 
 sha:	sha_driver.o sha.o
 	$(CC) -o $@ sha_driver.o sha.o
-	strip $@
 
 clean:
-	rm -rf *.o sha output*
+	@if [ -z "$(OUT)" ]; then \
+		echo "clean $(pwd)"; \
+	else \
+		echo "mv $(BINFILE) to $(OUT)"; \
+		mkdir -p $(OUT); \
+		mv -f $(BINFILE)  $(OUT); \
+	fi
+	rm -rf *.o $(BINFILE) output*

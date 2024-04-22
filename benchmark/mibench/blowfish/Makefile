@@ -1,5 +1,5 @@
 # Targets
-# make          - twidle the options yourself :-)
+# make		  - twidle the options yourself :-)
 # make cc       - standard cc options
 # make gcc      - standard gcc options
 # make x86-elf  - linux-elf etc
@@ -21,7 +21,7 @@ MAKE=make -f Makefile
 #CFLAG= -O
 
 CC=gcc
-CFLAG= -static -O3 -fomit-frame-pointer
+CFLAG= -fomit-frame-pointer
 
 CFLAGS=$(OPTS) $(CFLAG)
 CPP=$(CC) -E
@@ -125,6 +125,13 @@ depend:
 	makedepend $(LIBBF) $(TESTING_SRC)
 
 clean:
+	@if [ -z "$(OUT)" ]; then \
+		echo "clean $(pwd)"; \
+	else \
+		mkdir -p $(OUT); \
+		mv -f $(TESTING) $(OUT); \
+		echo "mv $(TESTING) to $(OUT)"; \
+	fi
 	/bin/rm -f *.o tags core $(TESTING) $(BLIB) .nfs* *.old *.bak asm/*.o output*
 
 dclean:
@@ -137,7 +144,7 @@ install: $(BLIB)
 	    echo SSL style install; \
 	    cp $(BLIB) $(INSTALLTOP)/lib; \
 	    if test -s /bin/ranlib; then \
-	        /bin/ranlib $(INSTALLTOP)/lib/$(BLIB); \
+			/bin/ranlib $(INSTALLTOP)/lib/$(BLIB); \
 	    else \
 		if test -s /usr/bin/ranlib; then \
 		/usr/bin/ranlib $(INSTALLTOP)/lib/$(BLIB); \

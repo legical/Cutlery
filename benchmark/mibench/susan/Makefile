@@ -1,5 +1,12 @@
 susan: susan.c Makefile
-	gcc -static -O4 -o susan susan.c -lm 
+	gcc -O4 -o susan susan.c -lm 
 
 clean:
+	@if [ -z "$(OUT)" ]; then \
+		echo "rm susan all"; \
+	else \
+		echo "mv susan to $(OUT)"; \
+		mkdir -p $(OUT); \
+		mv -f susan $(OUT); \
+	fi
 	rm -rf susan output*
