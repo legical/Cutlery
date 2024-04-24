@@ -74,8 +74,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # generate benchmark list
-    # binarys = get_benchmark_list()
-    binarys = get_all_files_in_directory(coreutils_dir)
+    binarys = get_benchmark_list()
     
     # max_seg = 100
     # 结点数 边数 | Angr静态分析	CFG重建	孤立函数 分段 | 分段点数量  孤立函数数量  孤立函数展示
