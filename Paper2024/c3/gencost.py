@@ -10,7 +10,8 @@ from CFGCut import CutBuilder
 # 获取当前脚本所在的目录路径
 script_dir = os.path.dirname(os.path.abspath(__file__))
 mibench_dir = script_dir + '/benchmarks/mibench'
-wcetbench_dir = script_dir + '/benchmarks/wcet_bench'    
+wcetbench_dir = script_dir + '/benchmarks/wcet_bench'   
+coreutils_dir = script_dir + '/benchmarks/coreutils-9.5' 
     
 # SPEC 06
 bzip2 = "/usr/local/software/spec2006/benchspec/CPU2006/401.bzip2/run/run_base_ref_amd64-m64-gcc42-nn.0000/bzip2_base.amd64-m64-gcc42-nn"
@@ -28,10 +29,6 @@ _621 = "/usr/local/software/spec2017/benchspec/CPU/621.wrf_s/run/run_base_refspe
 _627 = "/usr/local/software/spec2017/benchspec/CPU/627.cam4_s/run/run_base_refspeed_mytest-m64.0000/cam4_s_base.mytest-m64"
 _628 = "/usr/local/software/spec2017/benchspec/CPU/628.pop2_s/run/run_base_refspeed_mytest-m64.0000/speed_pop2_base.mytest-m64"
 
-# linux tool
-ls = "/bin/ls"
-grep = "/bin/grep"
-cat = "/bin/cat"
 
 def get_all_files_in_directory(directory) -> list:
     file_paths = []
@@ -52,10 +49,10 @@ def get_benchmark_list() -> list:
     binarys = list()
     mibenchfiles = get_all_files_in_directory(mibench_dir)
     wcetbenchfiles = get_all_files_in_directory(wcetbench_dir)
+    linuxtools = get_all_files_in_directory(coreutils_dir)
     specs = [bzip2, gcc, mcf, calculix,
                libquantum, lbm, sphinx3, _507, _549, _621, _627, _628
                ]
-    linuxtools = [ls, grep, cat]
     binarys.extend(mibenchfiles)
     binarys.extend(wcetbenchfiles)
     binarys.extend(specs)
@@ -77,7 +74,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # generate benchmark list
-    binarys = get_benchmark_list()
+    # binarys = get_benchmark_list()
+    binarys = get_all_files_in_directory(coreutils_dir)
     
     # max_seg = 100
     # 结点数 边数 | Angr静态分析	CFG重建	孤立函数 分段 | 分段点数量  孤立函数数量  孤立函数展示
