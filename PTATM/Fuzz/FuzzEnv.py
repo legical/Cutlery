@@ -131,7 +131,7 @@ class AFLConfig:
         AFLConfig.initEnvPrompt(AFLConfig.help)
         # 询问用户是否已经按照提示输入了命令
         user_input = input(
-            "Have you entered the command as prompted above? Please enter 'y' or 'Y' for yes, any other entry will be considered no: ")
+            "Please enter 'y' to continue, other to exit: ")
 
         # 判断用户输入并作出相应处理
         if user_input.lower() != 'y':

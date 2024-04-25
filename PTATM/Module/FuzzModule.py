@@ -5,7 +5,11 @@ def initWorkspace(args):
     # Check input and output directories for legality.
     if args.verbose:
         PTATM.info('Check Fuzzing env for legality.')
-    FuzzEnv.CheckEnv.checkWorkspace(args.input, args.output, args.binary)
+    try:
+        FuzzEnv.CheckEnv.checkWorkspace(args.input, args.output, args.binary)
+    except Exception as e:
+        PTATM.error(f'AFL env init failed.')
+        exit(1)
     # Get Segment list.
     seginfo = FuzzEnv.Seginfo.getSegInfo(args.seg_info, args.binary)
     if args.verbose:
