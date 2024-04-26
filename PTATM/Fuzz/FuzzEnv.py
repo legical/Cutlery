@@ -1,7 +1,6 @@
 import datetime
 import os
 import shutil
-import subprocess
 import angr
 import chardet
 
@@ -226,39 +225,27 @@ class FileTool:
         return state
 
     @staticmethod
-    def cleanPath(path: str, raise_exception=False):
+    def cleanPath(path: str):
         """
         Removes all files and directories within the specified path.
 
         Args:
             path (str): The path to clean.
-
-        Returns:
-            None
         """
-        if FileTool.isExist(path, raise_exception):
-            for root, dirs, files in os.walk(path, topdown=False):
-                for name in files:
-                    os.remove(os.path.join(root, name))
-                for name in dirs:
-                    os.rmdir(os.path.join(root, name))
+        if FileTool.isExist(path):
+            shutil.rmtree(path)
+        FileTool.mkdirPath(path)
 
     @staticmethod
-    def mkdirPath(path: str, clean=False):
+    def mkdirPath(path: str):
         """
         Create a directory at the specified path if it doesn't already exist.
 
         Args:
             path (str): The path of the directory to be created.
-
-        Returns:
-            None
         """
         if not os.path.exists(path):
             os.makedirs(path)
-
-        if clean:
-            FileTool.cleanPath(path)
 
 
 class CheckEnv:
@@ -362,24 +349,23 @@ class CheckEnv:
 
 class CaseTool:
     @staticmethod
-    def saveOldOutSeeds(out_path: str):
-        # 获取当前时间
-        time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-
+    def onlySaveSeeds(out_path: str):
         # 创建old文件夹
         old_out_path = out_path + "_old"
+        queue_path = out_path + "/queue"
         FileTool.mkdirPath(old_out_path)
-
-        # 保存本次输出的文件夹
-        thisold = old_out_path + "/" + time
-        mv2old = f"mv {out_path} {thisold}"
-        process = subprocess.Popen(['bash', '-c', mv2old], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        # 等待命令结束
-        process.wait()
-
+        # 保存本次输出的seeds
+        cases_file = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        cases_file_path = os.path.join(old_out_path, f"{cases_file}.txt")
+        
+        test_cases = CaseTool.saveCases(queue_path)        
+        # 将聚合后的测试用例内容写入到输出文件中
+        with open(cases_file_path, "a", encoding="utf-8") as output_file:
+            output_file.write(test_cases)
         # 创建新的输出文件夹
-        FileTool.mkdirPath(out_path, True)
+        FileTool.cleanPath(out_path)
+        
+        return cases_file_path
 
     @staticmethod
     # copy only files, not subfolders of out_path/queue/* to in_path, rename file with prefix(segment address offset)
@@ -388,7 +374,7 @@ class CaseTool:
         if os.path.exists(queue_path):
             # 获取out_path/queue/下的所有文件，但不包括子文件夹及其内部的文件
             files = [f for f in os.listdir(queue_path) if os.path.isfile(os.path.join(queue_path, f))]
-            FileTool.mkdirPath(in_path, True)
+            FileTool.cleanPath(in_path)
             # 复制生成的测试用例到输入文件夹
             for i, file_name in enumerate(files, 1):
                 # 构造新的文件名，例如1.in、2.in、3.in等
@@ -398,33 +384,24 @@ class CaseTool:
                 dst = in_path + "/" + prefix + new_file_name
                 shutil.copyfile(src, dst)
 
-            # 保存本次输出seeds
-            CaseTool.saveOldOutSeeds(out_path)
-
     @staticmethod
-    def saveCases(in_path: str, out_path: str) -> str:
+    def saveCases(case_path: str) -> str:
         # check input path exist?
-        FileTool.isExist(in_path, True)
-        FileTool.mkdirPath(out_path)
-
-        cases_file = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        cases_file_path = os.path.join(out_path, f"{cases_file}.txt")
-
+        FileTool.isExist(case_path, True)
+        
         # copy all .in files in in_path to cases_file
-        aggregated_content = ""
-        for filename in os.listdir(in_path):
+        test_cases = ""
+        for filename in os.listdir(case_path):
             if filename.endswith(".in"):
-                with open(os.path.join(in_path, filename), "rb") as file:  # 以二进制模式打开文件
+                with open(os.path.join(case_path, filename), "rb") as file:  # 以二进制模式打开文件
                     raw_data = file.read()
                     detected_encoding = chardet.detect(raw_data)['encoding']
                     if detected_encoding:
-                        aggregated_content += raw_data.decode(detected_encoding)
+                        test_cases += raw_data.decode(detected_encoding)
                     else:
                         # 如果无法检测编码，则默认使用UTF-8
-                        aggregated_content += raw_data.decode("utf-8", errors="replace")
-                    aggregated_content += '\n'
-        # 将聚合后的内容写入到输出文件中
-        with open(cases_file_path, "a", encoding="utf-8") as output_file:
-            output_file.write(aggregated_content)
+                        test_cases += raw_data.decode("utf-8", errors="replace")
+                    test_cases += '\n'
+                    
+        return test_cases
         
-        return cases_file_path

@@ -304,11 +304,11 @@ static inline void afl_maybe_log(abi_ulong cur_loc, CPUState *cpu) {
 
   afl_area_ptr[cur_loc ^ prev_loc]++;
   prev_loc = cur_loc >> 1;
-  append_debug("Child [%d] reach2 cur_local:%u, cur:%u, main+offset:%u, reach? %d\n", getpid(), cur_local, cur_loc, afl_exit_addr, ((int)afl_exit_addr == (int)cur_local) ? 1 : 0);
+  append_debug("Child [%d] reach2 cur_local:%u, cur:%u, offset:%u, reach? %d\n", getpid(), cur_local, cur_loc, afl_exit_addr, ((int)afl_exit_addr == (int)cur_local) ? 1 : 0);
 
   /* 如果分段偏移量不为0，证明设置了偏移，检测cur_loc是否运行到main start + offset */  
   if (afl_exit_addr && (int)afl_exit_addr == (int)cur_local) {
-    append_debug("Child [%d] reach seg. cur_local:%u, cur:%u, main+offset:%u\n", getpid(), cur_local, cur_loc, afl_exit_addr);
+    append_debug("Child [%d] reach seg. cur_local:%u, cur:%u, offset:%u\n", getpid(), cur_local, cur_loc, afl_exit_addr);
     CPUClass *cc = CPU_GET_CLASS(cpu);
     cc->cpu_exec_exit(cpu);
     rcu_read_unlock();
@@ -372,7 +372,7 @@ static void afl_wait_tsl(CPUState *cpu, int fd) {
 
 static void afl_seg_offset() {
   // 打开文件以读取数据
-  FILE* file = fopen("/tmp/aflsegment", "rb");
+  FILE* file = fopen(AFL_SEGMENT_FILE, "rb");
   if (file == NULL) {
       perror("Error opening file");
       return;
@@ -382,5 +382,5 @@ static void afl_seg_offset() {
   // 关闭文件
   fclose(file);  
   // 删除文件
-  remove("/tmp/aflsegment");
+//   remove(AFL_SEGMENT_FILE);
 }

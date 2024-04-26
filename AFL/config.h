@@ -354,4 +354,7 @@
 
 // #define IGNORE_FINDS
 
+// AFL segment address file
+#define  AFL_SEGMENT_FILE   "/tmp/aflsegment"
+
 #endif /* ! _HAVE_CONFIG_H */

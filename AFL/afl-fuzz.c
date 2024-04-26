@@ -360,14 +360,19 @@ static void append_debug(const char* format, ...)
   } else return;    
 }
 
+static void cleanAFLSegmentFile() {
+    remove(AFL_SEGMENT_FILE);
+}
+
 static void write2AFLSegmentFile(uint64_t address) {
-    FILE *file = fopen("/tmp/aflsegment", "w");
+    FILE *file = fopen(AFL_SEGMENT_FILE, "w");
     if (file != NULL) {
         fprintf(file, "%lu", address);
         fclose(file);
     } else {
         fprintf(stderr, "Failed to open the file for writing.\n");
     }
+    atexit(cleanAFLSegmentFile);
 }
 
 /* get target binary main function start address */

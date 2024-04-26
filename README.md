@@ -55,11 +55,7 @@ sudo apt install -y python3-pip
 Install required Python libraries using pip3:
 
 ```bash
-pip3 install matplotlib
-pip3 install lit
-pip3 install angr
-pip3 install angr-utils
-pip3 install gcovr
+pip3 install matplotlib lit angr angr-utils gcovr chardet pyvinecopulib statsmodels
 ```
 
 6. **Install AFL (American Fuzzy Lop)**:
@@ -70,6 +66,11 @@ Ensure you have AFL (American Fuzzy Lop) installed by following these steps:
 
 ```bash
 cd path/to/your/project/AFL
+# option: compile AFL with qemu mode
+cd qemu_mode
+./build_qemu_support.sh
+cd ..
+# install AFL
 sudo make install
 ```
 
