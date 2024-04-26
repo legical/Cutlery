@@ -8,7 +8,7 @@ def initWorkspace(args):
     try:
         FuzzEnv.CheckEnv.checkWorkspace(args.input, args.output, args.binary)
     except Exception as e:
-        PTATM.error(f'AFL env init failed.')
+        PTATM.error(f'AFL env init failed: {e}')
         exit(1)
     # Get Segment list.
     seginfo = FuzzEnv.Seginfo.getSegInfo(args.seg_info, args.binary)
