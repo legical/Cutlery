@@ -279,10 +279,10 @@ class CheckEnv:
         if len(os.listdir(out_path)) != 0:
             # ask user whether to delete the files in the folder
             # if user choose to delete, delete all files and folders in the folder
-            if input("The output folder[%s] is not empty, do you want to delete all files? [y/n]" % out_path) == "y":
+            if input(f"Output folder[{out_path}] not empty, clean it? [y/n] ") == "y":
                 FileTool.cleanPath(out_path)
             else:
-                raise Exception("Exit! Output folder[%s] is not empty." % out_path)
+                raise Exception(f"Exit! Output folder[{out_path}] is not empty.")
 
     @staticmethod
     def checkWorkspaceExist(in_path: str, out_path: str):
