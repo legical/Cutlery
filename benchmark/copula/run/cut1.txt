@@ -1,1 +1,1 @@
-month_days=month_days%return,check_day=check_day%return
+month_days=month_days%return,initialize__0=initialize
