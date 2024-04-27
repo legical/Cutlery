@@ -162,9 +162,9 @@ int main(int argc, char *argv[]) {
 // #ifdef POUT
 //         printf("Enter three integers separated by spaces: ");
 // #endif
-        char input[100];
-        fgets(input, sizeof(input), stdin);
-        sscanf(input, "%d %d %d", &year, &month, &day);
+        // char input[100];
+        // fgets(input, sizeof(input), stdin);
+        scanf("%d %d %d", &year, &month, &day);
     // }
 
     total_days = month_days(month);
