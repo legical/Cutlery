@@ -1,0 +1,27 @@
+{
+    "branch_covered": 12,
+    "branch_percent": 85.7,
+    "branch_total": 14,
+    "files": [
+        {
+            "branch_covered": 12,
+            "branch_percent": 85.7,
+            "branch_total": 14,
+            "filename": "expint.c",
+            "function_covered": 3,
+            "function_percent": 100.0,
+            "function_total": 3,
+            "line_covered": 35,
+            "line_percent": 100.0,
+            "line_total": 35
+        }
+    ],
+    "function_covered": 3,
+    "function_percent": 100.0,
+    "function_total": 3,
+    "gcovr/summary_format_version": "0.6",
+    "line_covered": 35,
+    "line_percent": 100.0,
+    "line_total": 35,
+    "root": "."
+}
