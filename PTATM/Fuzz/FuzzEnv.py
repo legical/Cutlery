@@ -350,16 +350,15 @@ class CheckEnv:
 
 class CaseTool:
     @staticmethod
-    def onlySaveSeeds(out_path: str):
+    def onlySaveSeeds(in_path: str, out_path: str):
         # 创建old文件夹
         old_out_path = out_path + "_old"
-        queue_path = out_path + "/queue"
         FileTool.mkdirPath(old_out_path)
         # 保存本次输出的seeds
         cases_file = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         cases_file_path = os.path.join(old_out_path, f"{cases_file}.txt")
         
-        test_cases = CaseTool.saveCases(queue_path)        
+        test_cases = CaseTool.saveCases(in_path)
         # 将聚合后的测试用例内容写入到输出文件中
         with open(cases_file_path, "a", encoding="utf-8") as output_file:
             output_file.write(test_cases)
