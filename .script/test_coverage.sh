@@ -4,12 +4,12 @@
 # It takes two arguments:
 # 1. The source code file (.c file)
 # 2. The input file to be used for testing
-# 3. The mode of input, default is scanf mode
+# 3. The mode to choose use binfile|cmdargs or not
 
 # Check if the correct number of arguments is provided
 if [ $# -lt 2 ]; then
-    echo "Usage: $0 <source_code_.c_file> <input_file> <mode>"
-    echo "     mode: @ for cmd args, otherwise for scanf like"
+    echo "Usage: $0 <source_code_.c_file> <case_file> <mode>"
+    echo "     mode: C for use cmd args, B for use exist binfile"
     exit 1
 fi
 
@@ -23,42 +23,51 @@ check_file_exists() {
 }
 
 # Assigning arguments to variables
-source_code_file=$(readlink -f "$1")
-input_file=$(readlink -f "$2")
+src_file=$(readlink -f "$1")
+case_file=$(readlink -f "$2")
+check_file_exists "$src_file"
+check_file_exists "$case_file"
 
 # check mode
-CMD_ARGS_MODE="@"
-SCANF_MODE="scanf"
-mode=$SCANF_MODE
+# 设置默认值
+usecmdargs=false
+usebinfile=false
+# 获取最后一个参数
+# 获取最后一个命令行参数
+last_arg="${!#}"
 
-if [ $# -ge 3 ] && [ "$3" = "@" ]; then
-    mode=$CMD_ARGS_MODE
-    echo "Using command line arguments mode"
-else
-    echo "Using scanf mode"
+# 判断最后一个命令行参数中是否存在C字符
+if [[ "$last_arg" == *"C"* ]]; then
+    usecmdargs=true
+    echo "use cmd args to run program"
 fi
 
-check_file_exists "$source_code_file"
-check_file_exists "$input_file"
+# 判断最后一个命令行参数中是否存在B字符
+if [[ "$last_arg" == *"B"* ]]; then
+    usebinfile=true
+    echo "use exist binfile: $usebinfile"
+fi
 
-# 获取 source_code_file 所在目录
-program_dir=$(dirname "$source_code_file")
+# 获取 src_file 所在目录
+program_dir=$(dirname "$src_file")
 if ! cd "$program_dir"; then
     echo "Error: Failed to change directory to $program_dir"
     exit 1
 fi
 
-pwd
-# 获取 source_code_file 和 input_file 相对于 program_dir 的路径
-source_code_file=$(basename "$source_code_file")
+# 获取 src_file 相对于 program_dir 的路径
+src_file=$(basename "$src_file")
+# 获取二进制文件名
+binfile=${src_file%.*}
 
-# Compile the source code file with coverage flags
-gcc --coverage "$source_code_file" -o "${source_code_file%.*}"
-
-# Check if compilation was successful
-if [ $? -ne 0 ]; then
-    echo "Compilation failed"
-    exit 1
+if [ "$usebinfile" = false ]; then
+    # Compile the source code file with coverage flags
+    gcc --coverage "$src_file" -o "$binfile"
+    # Check if compilation was successful
+    if [ $? -ne 0 ]; then
+        echo "Compilation failed"
+        exit 1
+    fi
 fi
 
 # Run the compiled program with input from input.txt
@@ -67,21 +76,24 @@ while IFS= read -r line; do
     if [ -z "$(echo "$line" | sed 's/ *//g')" ]; then
         continue
     fi
-    if [ "$mode" = "$CMD_ARGS_MODE" ]; then
-        ./${source_code_file%.*} $line
+    if [ "$usecmdargs" = true ]; then
+        ./${binfile} $line
     else
-        echo "$line" | "./${source_code_file%.*}"
+        echo "$line" | "./${binfile}"
     fi
-done < "$input_file"
+done < "$case_file"
 
 # Generate coverage report
-outjson="${source_code_file%.*}_coverage.json"
+outjson="${binfile}_coverage.json"
 gcovr --json-summary "$outjson"
 
 # Clean up generated files
-rm -f "${source_code_file%.*}" "${source_code_file%.*}.gcda" "${source_code_file%.*}.gcno"
+rm -f "${binfile}.gcda" "${binfile}.gcno"
+if [ "$usebinfile" = false ]; then
+    rm -f "${binfile}"
+fi
 
-echo "Coverage report of [$program_dir/${source_code_file}] generated successfully to [$program_dir/$outjson]"
+echo "Coverage report of [$program_dir/${src_file}] generated successfully to [$program_dir/$outjson]"
 
 # 检查 jq 是否安装
 if ! command -v jq &> /dev/null; then
