@@ -345,6 +345,7 @@ class CheckEnv:
         afl_root = AFLConfig.getAFLRoot()
         CheckEnv.checkAFLExist(afl_root)
         CheckEnv.checkBinaryExist(binary)
+        os.environ['AFL_NO_UI'] = '1'
 
 
 class CaseTool:
