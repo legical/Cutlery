@@ -46,8 +46,7 @@ sudo apt-get install libtool-bin libgtk2.0-dev -y
 Install additional packages such as jq and Python libraries:
 
 ```bash
-sudo apt install jq -y
-sudo apt install -y python3-pip
+sudo apt install jq gcovr python3-pip -y
 ```
 
 5. **Install Python Libraries**:
