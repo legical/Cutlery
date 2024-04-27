@@ -402,6 +402,9 @@ class CaseTool:
                         # 如果无法检测编码，则默认使用UTF-8
                         test_cases += raw_data.decode("utf-8", errors="replace")
                     test_cases += '\n'
-                    
+
+        # 去除多余的空行和空格
+        test_cases = '\n'.join([line.strip() for line in test_cases.splitlines() if line.strip()])
+
         return test_cases
         
