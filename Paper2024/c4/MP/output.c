@@ -108,7 +108,7 @@ int month_days(int month) {
         break;
     default:
         generate_voronoi(sum);
-        printf("month error!\n");
+        // printf("month error!\n");
         break;
     }
     // free_voronoi(diagram);
@@ -148,17 +148,17 @@ int check_day(int month, int day) {
 int main(int argc, char *argv[]) {
     int year = 0, month = 1, day = 1, total_days = 0;
     // Check if there are enough command line arguments
-//     if (argc >= 2) {
-//         // Convert command line arguments to integers
-//         year = atoi(argv[1]);
-//         if (argc >= 3) {
-//             month = atoi(argv[2]);
-//             if (argc >= 4) {
-//                 day = atoi(argv[3]);
-//             }
-//         }
-//     } else {
-// // If not enough command line arguments, read from stdin
+    // if (argc >= 2) {
+    //     // Convert command line arguments to integers
+    //     year = atoi(argv[1]);
+    //     if (argc >= 3) {
+    //         month = atoi(argv[2]);
+    //         if (argc >= 4) {
+    //             day = atoi(argv[3]);
+    //         }
+    //     }
+    // } else {
+// If not enough command line arguments, read from stdin
 // #ifdef POUT
 //         printf("Enter three integers separated by spaces: ");
 // #endif
@@ -181,27 +181,7 @@ int main(int argc, char *argv[]) {
             total_days++;
         }
     }
-// #ifdef POUT
-    printf("Today is the %d day in this year.\n", total_days);
-// #endif
-    double *ArrayA = NULL;
-    initialize(&ArrayA, total_days);
-
-    if (day & 1) {
-        double sum, mean, var;
-        calcSumAndMean(ArrayA, total_days, &sum, &mean);
-        calcVar(ArrayA, total_days, mean, &var);
-#ifdef POUT
-        printf("Sum: %f, Mean: %f, Var: %f\n", sum, mean, var);
-#endif
-    } else {
-        double k_th = select_kth(ArrayA, day, total_days);
-#ifdef POUT
-        printf("The %d-th smallest element is %f\n", day, k_th);
-#endif
-    }
-    free(ArrayA);
-
+    printf("%d %d %d\n", year, month, day);
     return 0;
 }
 

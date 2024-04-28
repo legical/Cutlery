@@ -230,11 +230,11 @@ int main()
 	scanf("%d", &choosen);
 	volatile int cnt=0;
 
-	cnt+=swi10(choosen);
-	cnt+=swi50(choosen);
-	cnt+=swi120(choosen);
+	cnt=swi10(choosen);
+	cnt=swi50(choosen);
+	cnt=swi120(choosen);
 
-	printf("cnt: %d\n", cnt);
+	/* printf("cnt: %d\n", cnt); */
 
 	return cnt;
 
