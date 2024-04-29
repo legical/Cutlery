@@ -87,6 +87,45 @@ def plot_data(data, output):
 
     # plt.legend(loc="best")
     plt.savefig(output)
+    
+def plot_pwcet(data, output):    
+    prob = np.logspace(np.log10(0.1), np.log10(1e-9), num=500)
+    
+    from PWCETGenerator import DataFilter, EVTTool
+    data = np.sort(data)
+    ecdf_gen = EVTTool.ECDFGenerator()
+    ecdf_model = ecdf_gen.fit(data)
+    ecdf_ccdf = [ecdf_model.isf(p) for p in prob]
+    
+    spd_gen = EVTTool.MixedDistributionGenerator('GPD', fix_c=0)
+    spd_model = spd_gen.fit(data)
+    print(f"混合分布拟合结果：\n{spd_model.expression()}\n")
+    spd_ccdf = [spd_model.isf(p) for p in prob]
+    
+    plt.figure(figsize=(18, 9))
+    plt.plot(prob, ecdf_ccdf, linestyle='--', linewidth=2, label='ECDF', color=(0.5, 0., 0.))
+    plt.plot(prob, spd_ccdf, label='Mix-SPD', color=(0.5, 0.5, 0.))
+    plt.legend(loc="best")
+    plt.title('pWCET')
+    plt.savefig(output)
+    
+def plot_ecdf_spd(data, output):    
+    from PWCETGenerator import DataFilter, EVTTool
+    data = np.sort(data)
+    ecdf_gen = EVTTool.ECDFGenerator()
+    ecdf_model = ecdf_gen.fit(data)
+    ecdf_cdf = [ecdf_model.cdf(i) for i in data]
+    
+    spd_gen = EVTTool.MixedDistributionGenerator('GPD', fix_c=0)
+    spd_model = spd_gen.fit(data)
+    print(f"混合分布拟合结果：\n{spd_model.expression()}\n")
+    spd_cdf = [spd_model.cdf(i) for i in data]
+
+    plt.figure(figsize=(18, 9))
+    plt.plot(data, ecdf_cdf, linestyle='--', linewidth=2, label='ECDF', color=(0.5, 0., 0.))
+    plt.plot(data, spd_cdf, label='Mix-SPD', color=(0.5, 0.5, 0.))
+    plt.legend(loc="best")
+    plt.savefig(output)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate and save scatter plot with probability density function fits')
@@ -94,4 +133,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     _, data = read_evt_data()
-    plot_data(data, args.output)
+    plot_pwcet(data, args.output)
