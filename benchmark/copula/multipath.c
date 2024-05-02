@@ -43,80 +43,80 @@ int is_leap_year(int year) {
 
 int month_days(int month) {
     int sum = 0;
-    // VoronoiDiagram diagram;
+    VoronoiDiagram diagram;
     switch (month) // 先计算某月以前月份的总天数
     {
     case 1:
         sum = 0;
-        generate_voronoi(sum);
+        diagram = generate_voronoi(sum);
         
         break;
     case 2:
         sum = 31;
-        generate_voronoi(sum);
+        diagram = generate_voronoi(sum);
         
         break;
     case 3:
         sum = 59;
-        generate_voronoi(sum);
+        diagram = generate_voronoi(sum);
         
         break;
     case 4:
         sum = 90;
-        generate_voronoi(sum);
+        diagram = generate_voronoi(sum);
         
         break;
     case 5:
         sum = 120;
-        generate_voronoi(sum);
+        diagram = generate_voronoi(sum);
         
         break;
     case 6:
         sum = 151;
-        generate_voronoi(sum);
+        diagram = generate_voronoi(sum);
         
         break;
     case 7:
         sum = 181;
-        generate_voronoi(sum);
+        diagram = generate_voronoi(sum);
         
         break;
     case 8:
         sum = 212;
-        generate_voronoi(sum);
+        diagram = generate_voronoi(sum);
         
         break;
     case 9:
         sum = 243;
-        generate_voronoi(sum);
+        diagram = generate_voronoi(sum);
         
         break;
     case 10:
         sum = 273;
-        generate_voronoi(sum);
+        diagram = generate_voronoi(sum);
         
         break;
     case 11:
         sum = 304;
-        generate_voronoi(sum);
+        diagram = generate_voronoi(sum);
         
         break;
     case 12:
         sum = 334;
-        generate_voronoi(sum);
+        diagram = generate_voronoi(sum);
         
         break;
     default:
-        generate_voronoi(sum);
+        diagram = generate_voronoi(sum);
         printf("month error!\n");
         break;
     }
-    // free_voronoi(diagram);
+    free_voronoi(diagram);
     return sum;
 }
 
 int check_day(int month, int day) {
-    // VoronoiDiagram diagram;
+    VoronoiDiagram diagram;
     if (day < 0) {
         day = 0 - day;
     } else if (day == 0) {
@@ -126,19 +126,19 @@ int check_day(int month, int day) {
         month == 10 || month == 12) {
         if (day > 31) {
             day %= 31;
-            generate_voronoi(day);
+            diagram = generate_voronoi(day);
             
         }
     } else if (month == 4 || month == 6 || month == 9 || month == 11) {
         if (day > 30) {
             day %= 30;
-            generate_voronoi(day);
+            diagram = generate_voronoi(day);
             
         }
     } else if (month == 2) {
         if (day > 29) {
             day %= 29;
-            generate_voronoi(day);
+            diagram = generate_voronoi(day);
             
         }
     }
@@ -325,30 +325,30 @@ int closest_point(Point points[], int num_points, int x, int y) {
 VoronoiDiagram generate_voronoi(int num_points) {
     VoronoiDiagram diagram;
 
-    // if (num_points <= 10) {
-    //     num_points = 10;
-    // } else if (num_points >= 50) {
-    //     num_points = num_points % 50 + 10;
-    // }
-    // diagram.num_points = num_points;
-    // diagram.points = (Point *)malloc(num_points * sizeof(Point));
-    // diagram.connections = (int *)malloc(100 * 100 * sizeof(int));
+    if (num_points <= 10) {
+        num_points = 10;
+    } else if (num_points >= 50) {
+        num_points = num_points % 50 + 10;
+    }
+    diagram.num_points = num_points;
+    diagram.points = (Point *)malloc(num_points * sizeof(Point));
+    diagram.connections = (int *)malloc(100 * 100 * sizeof(int));
 
-    // if (diagram.points == NULL || diagram.connections == NULL) {
-    //     printf("Memory allocation failed.\n");
-    //     exit(1);
-    // }
+    if (diagram.points == NULL || diagram.connections == NULL) {
+        printf("Memory allocation failed.\n");
+        exit(1);
+    }
 
-    // // Generate random points
-    // generate_points(diagram.points, num_points);
+    // Generate random points
+    generate_points(diagram.points, num_points);
 
-    // // Populate connections
-    // for (int y = 0; y < 100; ++y) {
-    //     for (int x = 0; x < 100; ++x) {
-    //         int closest = closest_point(diagram.points, num_points, x, y);
-    //         diagram.connections[y * 100 + x] = closest;
-    //     }
-    // }
+    // Populate connections
+    for (int y = 0; y < 100; ++y) {
+        for (int x = 0; x < 100; ++x) {
+            int closest = closest_point(diagram.points, num_points, x, y);
+            diagram.connections[y * 100 + x] = closest;
+        }
+    }
 
     return diagram;
 }

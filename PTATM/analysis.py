@@ -297,6 +297,8 @@ if __name__ == "__main__":
                        help='output mode, choose txt or png, default is txt')
     pwcet.add_argument('-v', '--verbose', action='store_true',
                        help='generate detail')
+    pwcet.add_argument('-c', '--compin', metavar='', required=True,
+                       help='path to save comparison experiment result')
     pwcet.add_argument('-o', '--output', metavar='', required=True,
                        help='path to save pwcet result')
     pwcet.set_defaults(func=PWCETModule.service)

@@ -9,7 +9,7 @@
 # Check if the correct number of arguments is provided
 if [ $# -lt 2 ]; then
     echo "Usage: $0 <source_code_.c_file> <case_file> <mode>"
-    echo "     mode: C for use cmd args, B for use exist binfile"
+    echo "     mode: C for use cmd args, B for use exist binfile, H for output html detail result"
     exit 1
 fi
 
@@ -85,7 +85,11 @@ done < "$case_file"
 
 # Generate coverage report
 outjson="${binfile}_coverage.json"
-gcovr --json-summary "$outjson"
+gcovr --json-summary-pretty --json-summary "$outjson"
+# 判断最后一个命令行参数中是否存在H字符
+if [[ "$last_arg" == *"H"* ]]; then
+    gcovr --html-details "${binfile}.html"
+fi
 
 # Clean up generated files
 rm -f "${binfile}.gcda" "${binfile}.gcno"

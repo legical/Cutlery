@@ -1,6 +1,5 @@
 from collections import OrderedDict
 import csv
-from functools import reduce
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -61,6 +60,10 @@ def margin_distributions(args, raw_data: OrderedDict):
 
 
 def simulate_and_merge(args, raw_data: OrderedDict, copula_model: CopulaTool.CopulaModel, ECDF_value: int = 0):
+    import warnings
+    from statsmodels.tools.sm_exceptions import InterpolationWarning
+    warnings.simplefilter('ignore', InterpolationWarning)
+    
     SIM_MAX_TIMES = 3
     task_merge_data, task_costs = None, None
     for _ in range(SIM_MAX_TIMES):
@@ -149,9 +152,9 @@ def service(args):
             drawpWCET(pwcet, raw_data, args)
             with open(args.output, 'a') as output:
                 # Write head line.
-                headline = f"function,{','.join(map(str, args.prob))}"
-                body = f"{args.function},{','.join(map(str, pwcet))}"
-                output.write('\n' + body + '\n' + headline)
+                output.write("prob\tpWCET\n")
+                for p, w in zip(args.prob, pwcet):
+                    output.write(f"{p},{w}\n")
             if args.verbose:
                 PTATM.info(f'Generate [{args.function}] result into [{args.output}].')
                 PTATM.info('Done.')

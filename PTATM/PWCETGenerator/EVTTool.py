@@ -259,7 +259,7 @@ class MixedDistribution(PWCETInterface):
 
 class LinearCombinedExtremeDistribution(PWCETInterface):
     def __init__(self) -> None:
-        super.__init__()
+        super().__init__()
         # A dict maps extd function(ExtremeDistribution object) to it's weight.
         self.weighted_extdfunc = dict()
         self.name = '[LinearCombined]'
@@ -638,11 +638,11 @@ class GPDGenerator(EVT):
         self.ext_data, self.threshold = self.POT(raw_data, self.pot_method, self.pot_arg)
         # print(f'Use PoT method [{self.pot_method}] to get {len(self.ext_data)} samples from {len(raw_data)} samples.')
         step = GPDGenerator.FIT_STEP
-        loops = int(len(self.ext_data) / step) + 1
+        loops, params = int(len(self.ext_data) / step) + 1, None
         for _ in range(loops):
             if len(self.ext_data) < self.nr_sample:
                 # Too less {len(self.ext_data)} samples. fit failed
-                return None
+                # return None
                 break
             if self.subtract_threshold:
                 # self.threshold = self.get_threshold(self.subtract_threshold)
@@ -656,7 +656,7 @@ class GPDGenerator(EVT):
             self.threshold = self.ext_data[step-1]
             self.ext_data = self.ext_data[step:]
         
-        c, loc, scale = params
+        c, loc, scale = GPDGenerator.fitGPD(self.ext_data, self.fix_c) if params is None else params
         # print(f'c={c}, loc={loc}, scale={scale}\tparams={params}')
         return self.gen({ExtremeDistribution.PARAM_SHAPE: c, ExtremeDistribution.PARAM_LOC: loc, ExtremeDistribution.PARAM_SCALE: scale})
 
@@ -668,12 +668,12 @@ class GPDGenerator(EVT):
 
 class GumbelGenerator(GEVGenerator):
     def __init__(self) -> None:
-        super().__init__(0)
+        super().__init__(fix_c=0)
 
 
 class ExponentialParetoGenerator(GPDGenerator):
     def __init__(self) -> None:
-        super().__init__(0)
+        super().__init__(fix_c=0)
 
 
 class MixedDistributionGenerator():
