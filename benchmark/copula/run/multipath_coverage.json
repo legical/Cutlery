@@ -1,27 +1,27 @@
 {
-    "branch_covered": 122,
-    "branch_percent": 96.1,
+    "branch_covered": 120,
+    "branch_percent": 94.5,
     "branch_total": 127,
     "files": [
         {
-            "branch_covered": 122,
-            "branch_percent": 96.1,
+            "branch_covered": 120,
+            "branch_percent": 94.5,
             "branch_total": 127,
             "filename": "multipath.c",
             "function_covered": 13,
             "function_percent": 100.0,
             "function_total": 13,
-            "line_covered": 203,
-            "line_percent": 98.1,
-            "line_total": 207
+            "line_covered": 198,
+            "line_percent": 96.1,
+            "line_total": 206
         }
     ],
     "function_covered": 13,
     "function_percent": 100.0,
     "function_total": 13,
     "gcovr/summary_format_version": "0.6",
-    "line_covered": 203,
-    "line_percent": 98.1,
-    "line_total": 207,
+    "line_covered": 198,
+    "line_percent": 96.1,
+    "line_total": 206,
     "root": "."
 }

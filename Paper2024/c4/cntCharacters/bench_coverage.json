@@ -1,27 +1,27 @@
 {
-    "branch_covered": 75,
-    "branch_percent": 96.2,
-    "branch_total": 78,
+    "branch_covered": 64,
+    "branch_percent": 100.0,
+    "branch_total": 64,
     "files": [
         {
-            "branch_covered": 75,
-            "branch_percent": 96.2,
-            "branch_total": 78,
+            "branch_covered": 64,
+            "branch_percent": 100.0,
+            "branch_total": 64,
             "filename": "bench.c",
-            "function_covered": 3,
+            "function_covered": 4,
             "function_percent": 100.0,
-            "function_total": 3,
-            "line_covered": 51,
+            "function_total": 4,
+            "line_covered": 58,
             "line_percent": 100.0,
-            "line_total": 51
+            "line_total": 58
         }
     ],
-    "function_covered": 3,
+    "function_covered": 4,
     "function_percent": 100.0,
-    "function_total": 3,
+    "function_total": 4,
     "gcovr/summary_format_version": "0.6",
-    "line_covered": 51,
+    "line_covered": 58,
     "line_percent": 100.0,
-    "line_total": 51,
+    "line_total": 58,
     "root": "."
 }
