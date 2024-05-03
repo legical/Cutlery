@@ -1,4 +1,4 @@
-# PTATM-AFL
+# Cutlery
 
 This repository contains code developed under:
 - Ubuntu 22.04 LTS
