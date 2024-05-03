@@ -63,11 +63,13 @@ class KernelDensityEstimation(PWCETInterface):
 
     def cdfs(self):
         samples = len(self.dataset)*2
-        self.x = np.linspace(np.min(self.dataset), np.max(self.dataset), samples)
+        self.x = np.linspace(np.min(self.dataset),
+                             np.max(self.dataset), samples)
         cdf_values = tuple(ndtr(np.ravel(item - self.dataset) / self.kde_func.factor).mean()
                            for item in self.x)
         # fix error: ValueError: Expect x to not have duplicates
-        unique_cdf_values, unique_indices = np.unique(cdf_values, return_index=True)
+        unique_cdf_values, unique_indices = np.unique(
+            cdf_values, return_index=True)
         unique_x = self.x[unique_indices]
         self.inversefunction = interpolate.interp1d(
             unique_cdf_values, unique_x, kind='cubic', bounds_error=False, fill_value=(unique_x[0], unique_x[-1]))
@@ -108,7 +110,8 @@ class EmpiricalDistribution(PWCETInterface):
 
     @staticmethod
     def get_isf(ecdf_func):
-        unique_cdf_values, unique_indices = np.unique(ecdf_func.y, return_index=True)
+        unique_cdf_values, unique_indices = np.unique(
+            ecdf_func.y, return_index=True)
         unique_x = ecdf_func.x[unique_indices]
         inversefunction = interpolate.interp1d(
             unique_cdf_values, unique_x, kind='cubic', bounds_error=False, fill_value=(unique_x[0], unique_x[-1]))
@@ -205,7 +208,8 @@ class MixedDistribution(PWCETInterface):
         self.KDEmodel = kwargs.get('KDE', None)
         self.ECDFmodel = kwargs.get('ECDF', None)
         self.threshold = kwargs.get('threshold', None)
-        self.threshold_cdf = self.ECDFmodel.cdf(self.threshold) if self.threshold is not None else None
+        self.threshold_cdf = self.ECDFmodel.cdf(
+            self.threshold) if self.threshold is not None else None
         self.name = kwargs.get('name', '[Mixed]')
 
     def onlyECDF(self):
@@ -377,7 +381,8 @@ class PositiveLinearExponentialPareto(LinearCombinedExtremeDistribution):
         for extd_func, weight in self.weighted_extdfunc.items():
             kwds = extd_func.kwds()
             self.sum_loc += weight * kwds[ExtremeDistribution.PARAM_LOC]
-            self.max_scale = max(self.max_scale, weight * kwds[ExtremeDistribution.PARAM_SCALE])
+            self.max_scale = max(self.max_scale, weight *
+                                 kwds[ExtremeDistribution.PARAM_SCALE])
         self.should_gen = False
 
     def add(self, extd_func: GPD, weight: int = 1) -> bool:
@@ -517,7 +522,8 @@ class EVT():
 
     def get_threshold(self, force=False):
         if self.threshold is None or force:
-            self.threshold = np.min(self.ext_data) if len(self.ext_data) > 0 else None
+            self.threshold = np.min(self.ext_data) if len(
+                self.ext_data) > 0 else None
         return self.threshold
 
 
@@ -549,7 +555,7 @@ class GEVGenerator(EVT):
             ext_vals.append(max(data[s: s + int(data_length // bs)]))
         return ext_vals
 
-    def fit(self, raw_data: list, nr_sample: int = None) -> ExtremeDistribution:
+    def fit(self, raw_data: list, nr_sample: int = None, strict: bool = False) -> ExtremeDistribution:
         if nr_sample is not None:
             self.nr_sample = nr_sample
         # Pick raw samples until we pass kpss,bds,lrd test -> pick extreme value & EVT fit until we pass cvm test.
@@ -572,7 +578,10 @@ class GEVGenerator(EVT):
             params = genextreme.fit(self.ext_data)
         else:
             params = genextreme.fit(self.ext_data, f0=self.fix_c)
-        EVT.show_cvm(self.ext_data, genextreme, params)
+            
+        if not EVT.show_cvm(self.ext_data, genextreme, params):
+            if strict:
+                return None
         c, loc, scale = params
         return self.gen({ExtremeDistribution.PARAM_SHAPE: c, ExtremeDistribution.PARAM_LOC: loc, ExtremeDistribution.PARAM_SCALE: scale})
 
@@ -616,7 +625,7 @@ class GPDGenerator(EVT):
         #     data = np.sort(data)
         #     evt_data = data[-4:]
         return np.sort(evt_data), threshold
-    
+
     @staticmethod
     def fitGPD(ext_data, fix_c=None):
         # Fit args for evt class and build evt function.
@@ -626,7 +635,7 @@ class GPDGenerator(EVT):
             params = genpareto.fit(ext_data, f0=fix_c)
         return params
 
-    def fit(self, raw_data) -> ExtremeDistribution:
+    def fit(self, raw_data, strict: bool = False) -> ExtremeDistribution:
         # Pick raw samples until we pass kpss,bds,lrd test -> pick extreme value & EVT fit until we pass cvm test.
         if len(raw_data) < GPDGenerator.MIN_NRSAMPLE:
             self.err_msg += "Too few samples[%d] to fit.\n" % len(raw_data)
@@ -635,14 +644,16 @@ class GPDGenerator(EVT):
             self.err_msg += "Max(raw_data)[%f]<=0.\n" % max(raw_data)
             return None
 
-        self.ext_data, self.threshold = self.POT(raw_data, self.pot_method, self.pot_arg)
+        self.ext_data, self.threshold = self.POT(
+            raw_data, self.pot_method, self.pot_arg)
         # print(f'Use PoT method [{self.pot_method}] to get {len(self.ext_data)} samples from {len(raw_data)} samples.')
         step = GPDGenerator.FIT_STEP
         loops, params = int(len(self.ext_data) / step) + 1, None
         for _ in range(loops):
             if len(self.ext_data) < self.nr_sample:
                 # Too less {len(self.ext_data)} samples. fit failed
-                # return None
+                if strict:
+                    return None
                 break
             if self.subtract_threshold:
                 # self.threshold = self.get_threshold(self.subtract_threshold)
@@ -655,8 +666,9 @@ class GPDGenerator(EVT):
             # pass test. Failed reduce EVT-data and re-fit.
             self.threshold = self.ext_data[step-1]
             self.ext_data = self.ext_data[step:]
-        
-        c, loc, scale = GPDGenerator.fitGPD(self.ext_data, self.fix_c) if params is None else params
+
+        c, loc, scale = GPDGenerator.fitGPD(
+            self.ext_data, self.fix_c) if params is None else params
         # print(f'c={c}, loc={loc}, scale={scale}\tparams={params}')
         return self.gen({ExtremeDistribution.PARAM_SHAPE: c, ExtremeDistribution.PARAM_LOC: loc, ExtremeDistribution.PARAM_SCALE: scale})
 
@@ -699,7 +711,8 @@ class MixedDistributionGenerator():
         if 'sub_thresh' not in kwargs:
             kwargs['sub_thresh'] = True
         self.threshold = None
-        self.gen_EVT = MixedDistributionGenerator.EVT_TYPE.get(evt_type, GPDGenerator)(**kwargs)
+        self.gen_EVT = MixedDistributionGenerator.EVT_TYPE.get(
+            evt_type, GPDGenerator)(**kwargs)
         self.gen_KDE = KDEGenerator()
         self.gen_ECDF = ECDFGenerator()
 
@@ -722,10 +735,12 @@ class MixedDistributionGenerator():
             self.threshold = self.gen_EVT.get_threshold()
             # below_data = [x for x in raw_data if x < self.threshold]
             # model_KDE = self.gen_KDE.fit(below_data)
-            mix_name = '[SPD]' if 'GPD' in model_EVT.getname() else '[Mixed GEV]'
+            mix_name = '[SPD]' if 'GPD' in model_EVT.getname(
+            ) else '[Mixed GEV]'
 
         # params = dict(EVT=model_EVT, KDE=model_KDE, threshold=self.threshold, ECDF=model_ECDF, name=mix_name)
-        params = dict(EVT=model_EVT, KDE=model_KDE, threshold=self.threshold, ECDF=model_ECDF, name=mix_name)
+        params = dict(EVT=model_EVT, KDE=model_KDE,
+                      threshold=self.threshold, ECDF=model_ECDF, name=mix_name)
         return self.gen(**params)
 
     def gen(self, **kwargs) -> MixedDistribution:

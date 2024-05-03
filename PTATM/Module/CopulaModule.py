@@ -121,7 +121,7 @@ def service(args):
 
     # Get segment excution time info from json file.
     if args.verbose:
-        PTATM.info(f'Parsing data from {args.input} with function[{args.function}].')
+        PTATM.info(f'Get first [{args.firstn}] data from {args.input} for each segment of function[{args.function}].')
     raw_data = CopulaTool.DataProcess.json2data(args.input, args.function, args.segment_number, args.firstn)
 
     # Fit spd distribution for each segment.
@@ -152,7 +152,7 @@ def service(args):
             drawpWCET(pwcet, raw_data, args)
             with open(args.output, 'a') as output:
                 # Write head line.
-                output.write("prob\tpWCET\n")
+                output.write("prob,pWCET\n")
                 for p, w in zip(args.prob, pwcet):
                     output.write(f"{p},{w}\n")
             if args.verbose:

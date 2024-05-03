@@ -143,7 +143,7 @@ int check_day(int month, int day) {
     return day;
 }
 
-int main(int argc, char *argv[]) {
+int main() {
     int year = 0, month = 1, day = 1, total_days = 0;
     // Check if there are enough command line arguments
 //     if (argc >= 2) {

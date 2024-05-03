@@ -13,15 +13,19 @@ EVT = {'GEV': None, 'GPD': None}
 MODE = {'txt': None, 'png': None}
 
 
-def compTest(compin: str, prob: list) -> list:
-    task_costs = []  # 创建一个空列表，用于存储total列的数据
-    with open(compin, 'r', newline='') as csvfile:  # 打开CSV文件
-        reader = csv.DictReader(csvfile)  # 创建一个CSV字典阅读器对象
-        for row in reader:  # 遍历CSV文件的每一行
-            task_costs.append(float(row['total']))  # 将当前行的'total'列数据添加到列表中
-
-    evt_distribution = EVTTool.GEVGenerator(fix_c=0, nr_sample=100)
-    pwcet_model = evt_distribution.fit(task_costs)
+def compTest(compin: str, prob: list, task_costs:list=None) -> list:
+    if task_costs is None:
+        task_costs = []  # 创建一个空列表，用于存储total列的数据
+        with open(compin, 'r', newline='') as csvfile:  # 打开CSV文件
+            reader = csv.DictReader(csvfile)  # 创建一个CSV字典阅读器对象
+            for row in reader:  # 遍历CSV文件的每一行
+                task_costs.append(float(row['total']))  # 将当前行的'total'列数据添加到列表中
+    
+    evt_distribution = EVTTool.GPDGenerator(fix_c=0)
+    pwcet_model = evt_distribution.fit(task_costs, True)
+    if pwcet_model is None:
+        evt_distribution = EVTTool.GEVGenerator(fix_c=0, nr_sample=100)
+        pwcet_model = evt_distribution.fit(task_costs)
     pwcet = [round(pwcet_model.isf(p), 10) for p in prob]
     return pwcet
 
@@ -43,6 +47,7 @@ def drawpWCET(args, convpwcet) -> str:
     ecdf_gen = EVTTool.ECDFGenerator()
     ecdf_model = ecdf_gen.fit(ecdf_time)
     ecdf_pwcet = [ecdf_model.isf(p) for p in y_prob]
+    ecdf_evt_pwcet = compTest(args.compin, y_prob, ecdf_time)
 
     copula_pwcet = compTest(args.compin, y_prob)
     # 绘制图形
@@ -51,9 +56,10 @@ def drawpWCET(args, convpwcet) -> str:
     plt.xlabel('time')
     plt.ylabel('prob')
 
-    plt.plot(ecdf_pwcet, y_prob, label='ECDF', color=(0.5, 0., 0.))
-    plt.plot(copula_pwcet, y_prob, label='Copula', color=(0.5, 0.5, 0.))
-    plt.plot(convpwcet, y_prob, label='Convolution', color=(0., 0., 0.5))
+    plt.plot(ecdf_pwcet, y_prob, label='ECDF', linestyle='-', linewidth=2)  # 实线
+    plt.plot(ecdf_evt_pwcet, y_prob, label='ECDF-EVT', linestyle='--', linewidth=2)  # 虚线
+    plt.plot(copula_pwcet, y_prob, label='Copula', linestyle='-.', linewidth=2)  # 点划线
+    plt.plot(convpwcet, y_prob, label='Convolution', linestyle=':', linewidth=2)  # 点线
 
     plt.legend(loc="best")
     # 保存图形
