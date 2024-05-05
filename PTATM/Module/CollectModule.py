@@ -21,7 +21,7 @@ CMD = 'cmd'
 RUN_CONTENDER = False
 
 
-def gentrace(binary: str, command: str, uprobes: list, clock: str):
+def gentrace(binary: str, command: str, uprobes: list):
     from SegmentInfoCollector.Collector import TraceCollector
     # Del all uprobes.
     TraceCollector.delprobe(TraceCollector.PROBE_ALL)
@@ -34,9 +34,9 @@ def gentrace(binary: str, command: str, uprobes: list, clock: str):
             
         # TraceCollector.showprobe(binary)
         # Start collect.
-        ok, info = TraceCollector.collectTrace(command, clock)
+        ok, info = TraceCollector.collectTrace(command)
         if not ok:
-            raise Exception('Failed to collect info for command[%s] with clock[%s].\n%s' % (command, clock, info))
+            raise Exception('Failed to collect info for command[%s].\n%s' % (command, info))
     except Exception as error:
         raise error
     finally:
@@ -131,7 +131,10 @@ def service(args):
             binary = os.path.abspath(task[BINARY])
             uprobes = task[PROBES]
             inputs = task[INPUTS]
-            cmdpat = 'taskset -c %%d %s %%s' % binary
+            if args.cmd:
+                cmdpat = 'taskset -c %%d %s "%%s"' % binary
+            else:
+                cmdpat = 'taskset -c %%d echo "%%s" | %s' % binary
             # Change working directory for collect.
             os.chdir(taskdir)
             # random input
@@ -145,8 +148,8 @@ def service(args):
                     PTATM.info(f'[{i}/{len(random_idx)}]\tCollect for command [{command}].')
                 # Randomize buddy.
                 PTATM.exec(ControlModule.RANDOMIZER)
-                traceinfo = gentrace(binary, command, uprobes, args.clock)
-                outfile.write('\n[%s] [%s]\n' % (command, args.clock) + traceinfo)
+                traceinfo = gentrace(binary, command, uprobes)
+                outfile.write(f'\n[{command}] [global]\n{traceinfo}')
                 outfile.flush()
     except Exception as error:
         raise error

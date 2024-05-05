@@ -64,7 +64,7 @@ def simulate_and_merge(args, raw_data: OrderedDict, copula_model: CopulaTool.Cop
     from statsmodels.tools.sm_exceptions import InterpolationWarning
     warnings.simplefilter('ignore', InterpolationWarning)
     
-    SIM_MAX_TIMES = 3
+    SIM_MAX_TIMES = 1
     task_merge_data, task_costs = None, None
     for _ in range(SIM_MAX_TIMES):
         # simulate

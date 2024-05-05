@@ -253,8 +253,8 @@ if __name__ == "__main__":
     collect = subparsers.add_parser('collect', help='collect trace for task')
     collect.add_argument('taskconf',
                          help="path to config of the target to collect and its contenders")
-    collect.add_argument('-c', '--clock', metavar='', default='global',
-                         help='clock the tracer used, default is global, see man perf record')
+    collect.add_argument('-c', '--cmd', action='store_true',
+                         help='target use cmd args to input. default is False: input from stdin')
     collect.add_argument('-r', '--repeat', metavar='', type=human_readable_to_number, default='5k', nargs='?',
                          help='generate multiple trace information by repeating each input, default is 20')
     collect.add_argument('-v', '--verbose', action='store_true',
@@ -265,7 +265,7 @@ if __name__ == "__main__":
     
     # Add subcommand seginfo.
     seginfo = subparsers.add_parser('seginfo', help='dump trace/seginfo, and generate a new seginfo')
-    seginfo.add_argument('-i', '--input-trace', metavar='', action='extend', default=list(), nargs='+',
+    seginfo.add_argument('-i', '--input', metavar='', action='extend', default=list(), nargs='+',
                          help='path to raw trace file')
     seginfo.add_argument('-j', '--json-trace', metavar='', action='extend', default=list(), nargs='+',
                          help='path to json trace file(segment info)')

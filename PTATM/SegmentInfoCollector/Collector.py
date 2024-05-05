@@ -46,8 +46,7 @@ class TraceCollector:
 
     # Returns (True, trace) or (False, error message).
     @staticmethod
-    def collectTrace(command: str, clock: str) -> tuple:
-        record = "perf record -e %s -aR -k %s -o %s %s" % (TraceCollector.PROBE_ALL, clock, TraceCollector.RECORD_FILE, command)
+    def collectTrace(command: str) -> tuple:
         record = "perf record -e %s -aR -o %s %s" % (TraceCollector.PROBE_ALL, TraceCollector.RECORD_FILE, command)
         script = "perf script -F time,event -i %s" % TraceCollector.RECORD_FILE
 
