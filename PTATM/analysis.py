@@ -324,21 +324,31 @@ if __name__ == "__main__":
                        help='path to save copula pwcet result')
     copula.set_defaults(func=CopulaModule.service)
 
-    geninput = subparsers.add_parser('geninput', help='generate input for each module')    
+    geninput = subparsers.add_parser('geninput', help='generate input for each module')
+    geninput_subparsers = geninput.add_subparsers(title='subcommand', dest="subcommand")
     # Add subparsers for genjson sub command under collect command.
-    collect_input = geninput.add_subparsers(title='generate input for collect module', dest="subcommand")
-    collect_input = collect_input.add_parser('collect', help='generate json file for collecting trace')
-    collect_input.add_argument('binary',
+    fuzz_input = geninput_subparsers.add_parser('fuzz', help='generate segment points file for fuzz')
+    fuzz_input.add_argument('-i', '--input', metavar='', required=True, help='path to segment points file')
+    fuzz_input.add_argument('-p', '--point', metavar='', action='extend', default=argparse.SUPPRESS, nargs='+', help=r'segment points to fuzz, default only main%return')
+    fuzz_input.add_argument('-v', '--verbose', action='store_true', help='generate detail')
+    fuzz_input.add_argument('-o', '--output', metavar='', required=True, help='path to save fuzz segment points file')
+    fuzz_input.set_defaults(func=FuzzModule.geninput)
+    
+    # Add subparsers for genjson sub command under collect command.
+    collect_input = geninput_subparsers.add_parser('collect', help='generate json file for collecting trace')
+    collect_input.add_argument('-b', '--binary', metavar='', required=True,
                       help='path to binary file')
     collect_input.add_argument('-p', '--probe', metavar='', required=True,
                       help='path to store binary segment probe info')
     collect_input.add_argument('-i', '--input', metavar='', required=True,
                       help='path to store binary input args')
+    collect_input.add_argument('-c', '--core', metavar='', type=int, default=1,
+                      help='path to store binary input args')
     collect_input.add_argument('-v', '--verbose', action='store_true',
                          help='generate detail')
     collect_input.add_argument('-o', '--output', metavar='', required=True,
                          help='path to save collect json file, must end with .json')
-    collect_input.set_defaults(func=CollectModule.genjson)
+    collect_input.set_defaults(func=CollectModule.geninput)
 
     try:
         # Check env.

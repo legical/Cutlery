@@ -166,7 +166,7 @@ def service(args):
         PTATM.info('Done.')
 
 
-def genjson(args):
+def geninput(args):
     # check probefile is exist
     if not os.path.exists(args.probe):
         raise FileNotFoundError(f"File '{args.probe}' not found.")
@@ -177,7 +177,8 @@ def genjson(args):
     from SegmentInfoCollector.InputTool import InputJson
     if args.verbose:
         PTATM.info('Generate collect input json file.')
-    inputjson = InputJson(args.binary, args.probe, args.input)
+    cores = [args.core]
+    inputjson = InputJson(args.binary, args.probe, args.input, cores)
     collect_json = inputjson.genJson(args.output)
     if args.verbose:
         PTATM.info(f'Save json file to : [{collect_json}].')

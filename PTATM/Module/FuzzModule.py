@@ -48,3 +48,29 @@ def service(args):
     elapsed_time = time.time() - start_time  # 计算总体耗时
     if args.verbose:
         PTATM.info(f'All done.  Total cost: {fuzz.fuzztime(elapsed_time)}')
+        
+def geninput(args):
+    if not hasattr(args, 'point') or args.point is None:
+        points = r'main=main%return'
+    else:
+        print(args.point)
+        if not PTATM.fileExist(args.input):
+            raise FileNotFoundError(f"File '{args.input}' not found.")
+        segpoints = []
+        with open(args.input, 'r') as file:
+            content = file.read()
+        for item in content.split(','):
+            for point in args.point:
+                if point + '=' in item:
+                    segpoints.append(item)
+                    args.point.remove(point)
+                    break
+        points = ','.join(segpoints)
+    if args.verbose:
+        PTATM.info(f'Find fuzzing segment points: [{points}].')
+        # write segpoints to args.output
+    with open(args.output, 'w', encoding="utf-8") as f:
+        f.write(points) 
+    if args.verbose:
+        PTATM.info(f'Save to {args.output}.')
+        PTATM.info(f'Done.')

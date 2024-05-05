@@ -57,3 +57,6 @@ def fileEndWith(file_path: str, suffix: str) -> str:
             return new_file_path
         else:
             return file_path + suffix
+
+def fileExist(file_path: str) -> bool:
+    return os.path.exists(file_path)

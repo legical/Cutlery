@@ -2,10 +2,11 @@ import json
 
 
 class InputJson:
-    def __init__(self, binary: str, probefile: str, inputfile: str):
+    def __init__(self, binary: str, probefile: str, inputfile: str, core: list = None):
         self.binary = binary
         self.probefile = probefile
         self.inputfile = inputfile
+        self.core = core
 
     def getProbes(self) -> list:
         probes = list()
@@ -20,11 +21,16 @@ class InputJson:
         with open(self.inputfile, 'r', encoding="utf-8") as f:
             inputs = f.read().splitlines()
         return inputs
+    
+    def getCore(self) -> list:
+        if self.core is None:
+            return [1]
+        return self.core
 
     def genJson(self, outputfile: str) -> str:
         data = {
             "target": {
-                "core": [1],
+                "core": self.getCore(),
                 "task": [
                     {
                         "dir": ".",
