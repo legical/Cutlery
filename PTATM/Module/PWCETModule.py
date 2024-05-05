@@ -39,6 +39,7 @@ def drawpWCET(args, convpwcet) -> str:
             data = json.load(f)
             ecdf_time = data.get('dump', {}).get(
                 'main', {}).get('fullcost', {}).get('time', [])
+            ecdf_time = [float(x) for x in ecdf_time if x > 0]
     except FileNotFoundError:
         print("文件不存在")
     except json.JSONDecodeError:

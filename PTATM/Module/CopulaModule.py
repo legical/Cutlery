@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import csv
+import json
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,26 +15,47 @@ PWCET_DISTRIBUTIONS = {
     'EP': EVTTool.ExponentialParetoGenerator
 }
 
+def EVTpWCET(data, args):
+    pwcet = None
+    for evt_type in args.evt_type:
+        evt_distribution = PWCET_DISTRIBUTIONS[evt_type](fix_c=0, nr_sample=100)
+        pwcet_model = evt_distribution.fit(data)
+        if pwcet_model is not None:
+            pwcet = [round(pwcet_model.isf(p), 10) for p in args.prob]
+            break
+    return pwcet
+    
 
-def drawpWCET(pwcet: list, raw_data: OrderedDict, args):
+def drawpWCET(copula_pwcet: list, args):
     y_prob, output_file = args.prob, PTATM.fileEndWith(args.output, '.png')
+    ecdf_time = []
     # ECDF fit
-    x_rawcosts = CopulaTool.DataProcess.combine(raw_data)
+    try:
+        with open(args.input, 'r') as f:
+            data = json.load(f)
+            ecdf_time = data.get('dump', {}).get(
+                'main', {}).get('fullcost', {}).get('time', [])
+            ecdf_time = [float(x) for x in ecdf_time if x > 0]
+    except FileNotFoundError:
+        print("文件不存在")
+    except json.JSONDecodeError:
+        print("JSON 解析错误")
     ecdf_gen = EVTTool.ECDFGenerator()
-    ecdf_model = ecdf_gen.fit(x_rawcosts)
+    ecdf_model = ecdf_gen.fit(ecdf_time)
     ecdf_pwcet = [ecdf_model.isf(p) for p in y_prob]    
-    sorted_indices = sorted(range(len(ecdf_pwcet)), key=lambda k: ecdf_pwcet[k])
-    x_sorted = [ecdf_pwcet[i] for i in sorted_indices]
-    y_sorted = [y_prob[i] for i in sorted_indices]
+    ecdf_evt_pwcet = EVTpWCET(ecdf_time, args)
 
     # 绘制图形
     plt.figure(figsize=(18, 9))
     plt.title('pWCET')
     plt.xlabel('time')
     plt.ylabel('prob')
-
-    plt.plot(pwcet,y_prob,label='Copula',color=(0.5,0.,0.))
-    plt.plot(x_sorted,y_sorted,label='ECDF',color=(0.5,0.5,0.))
+    
+    plt.plot(ecdf_pwcet, y_prob, label='ECDF', linestyle='-', linewidth=2)  # 实线
+    if ecdf_evt_pwcet is not None:
+        plt.plot(ecdf_evt_pwcet, y_prob, label='ECDF-EVT', linestyle='--', linewidth=2) # 虚线
+    plt.plot(copula_pwcet, y_prob, label='Copula', linestyle='-.', linewidth=2)  # 点划线
+    
     plt.legend(loc="best")
     # 保存图形
     plt.savefig(output_file)
@@ -149,7 +171,7 @@ def service(args):
                 PTATM.info(pwcet_model.expression())
             # gen pWCET
             pwcet = [round(pwcet_model.isf(p), 10) for p in args.prob]
-            drawpWCET(pwcet, raw_data, args)
+            drawpWCET(pwcet, args)
             with open(args.output, 'a') as output:
                 # Write head line.
                 output.write("prob,pWCET\n")

@@ -172,6 +172,8 @@ class RawTraceStringFiller(TraceFiller):
                 if segcost > 0:
                     for fname, _ in func_domain:
                         traceObject.getSegmentNormcost(fname, segname).setdefault(Trace.COST_TIME, list()).append(segcost)
+                else:
+                    return None
                     
                 # Maybe we should update func_domain.
                 if SegmentFunction.entrySegment(cur_segno):
@@ -184,6 +186,13 @@ class RawTraceStringFiller(TraceFiller):
                 
                 # Update last_time, last_funcname, last_segno.
                 last_time, last_funcname, last_segno = cur_time, cur_funcname, cur_segno
+            
+            if len(func_domain) != 0:
+                cur_time, cur_funcname, _ = timetraces[-1]
+                if cur_funcname == func_domain[-1][0]:
+                    traceObject.getFunctionFullcost(cur_funcname).setdefault(Trace.COST_TIME, list()).append(float(cur_time) - float(func_domain.pop()[1]))
+                else:
+                    raise Exception(f"{cur_funcname} may not be a cut-func.")
                 
             # Repair format for traceObject.dump.
             DumpFiller(traceObject).fill()
