@@ -17,7 +17,7 @@ def service(args):
     seg_func_names = cut_builder.findCutFunctionFromMain(sfg_builder)
     if len(seg_func_names) != 0:
         if args.verbose:
-            PTATM.info(f'Find {len(seg_func_names)} cut-node functions: {seg_func_names}.')
+            PTATM.info(f'Find {len(seg_func_names)} isolated functions: {seg_func_names}.')
         seg_points = cut_builder.getTaskSegmentPoints(sfg_builder)
         cut_builder.saveTaskSegmentPoints(seg_points, args.output)
         if args.verbose:
